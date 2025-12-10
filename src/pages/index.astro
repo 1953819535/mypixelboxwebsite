@@ -1,14 +1,15 @@
 ---
 import axios from "axios";
 
-const ENV_IMAGE_URL = import.meta.env.IMAGE_URL || "";
-
 function getImg(path: string, w: number = 0, q: number = 80) {
   if (!path) return "";
   if (path.startsWith("http")) return path;
   const cleanPath = path.replace(/^\//, "");
-  if (!w) return `https://images.wangdengfeng.top/${cleanPath}`;
-  return `https://images.wangdengfeng.top/cdn-cgi/image/width=${w},quality=${q},format=auto/${cleanPath}`;
+  // 使用环境变量配置的图片服务器域名，不提供默认值
+  const imageUrl = import.meta.env.IMAGE_URL;
+  if (!imageUrl) return ""; // 如果没有配置环境变量，返回空字符串
+  if (!w) return `${imageUrl}/${cleanPath}`;
+  return `${imageUrl}/cdn-cgi/image/width=${w},quality=${q},format=auto/${cleanPath}`;
 }
 
 // 4. 定义数据类型
@@ -46,9 +47,14 @@ interface Album {
 // 5. 动态获取相册数据
 async function fetchAlbums(): Promise<Album[]> {
   try {
-    // 使用环境变量或默认值作为API基础URL
-    const API_BASE_URL =
-      import.meta.env.API_BASE_URL || "http://localhost:3000";
+    // 使用环境变量作为API基础URL，不提供默认值
+    const API_BASE_URL = import.meta.env.API_BASE_URL;
+
+    // 如果没有配置API地址，返回空数组
+    if (!API_BASE_URL) {
+      console.warn("未配置 API_BASE_URL 环境变量");
+      return [];
+    }
 
     console.log("获取数据开始", `${API_BASE_URL}/api/albums/gallery/public`);
 
