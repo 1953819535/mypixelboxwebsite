@@ -19,13 +19,15 @@ RUN pnpm install
 # 复制项目的所有文件
 COPY . .
 
-# 创建必要的目录和设置权限
+# 创建必要的目录和文件
 RUN mkdir -p /app/dist /app/logs && \
     touch /app/.last_commit && \
-    addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 && \
-    chown -R nextjs:nodejs /app && \
     chmod +x /app/build-and-deploy.sh
+
+# 创建非root用户并设置权限
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 && \
+    chown -R nextjs:nodejs /app
 
 USER nextjs
 

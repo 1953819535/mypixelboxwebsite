@@ -1,12 +1,5 @@
 #!/bin/sh
 
-# 设置变量
-LOG_FILE="/srv/apps/mypixelboxwebsite/logs/build-deploy.log"
-LAST_COMMIT_FILE="/srv/apps/mypixelboxwebsite/.last_commit"
-
-# 创建日志目录（在容器内部）
-mkdir -p /app/logs
-
 # 主循环
 while true; do
     DATE=$(date '+%Y-%m-%d %H:%M:%S')
@@ -23,6 +16,7 @@ while true; do
         echo "[$DATE] 无法获取当前commit信息，跳过本次构建" >> $LOG_FILE
     else
         LAST_COMMIT=""
+        LAST_COMMIT_FILE="/app/.last_commit"
         
         if [ -f "$LAST_COMMIT_FILE" ]; then
             LAST_COMMIT=$(cat $LAST_COMMIT_FILE)
