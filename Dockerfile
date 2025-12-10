@@ -4,30 +4,28 @@ FROM node:20-alpine
 # 设置工作目录
 WORKDIR /app
 
-# 更换为阿里云镜像源并一次性安装所有系统依赖
+# 更换为阿里云镜像源并安装必要工具
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
     apk update && \
     apk add --no-cache docker-cli git && \
     npm install -g pnpm
 
-# 复制package.json和pnpm-lock.yaml（如果存在）
+# 复制依赖文件并安装依赖
 COPY package.json pnpm-lock.yaml* ./
-
-# 设置pnpm使用国内镜像源并安装项目依赖
 RUN pnpm install
 
-# 复制项目的所有文件
+# 复制项目文件
 COPY . .
 
-# 创建必要的目录和文件
+# 创建必要的目录和文件，设置权限
 RUN mkdir -p /app/dist /app/logs && \
     touch /app/.last_commit && \
-    chmod +x /app/build-and-deploy.sh
+    chmod +x /app/build-and-deploy.sh && \
+    chown -R nextjs:nodejs /app/dist /app/logs /app/.last_commit /app/build-and-deploy.sh
 
 # 创建非root用户并设置权限
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001 && \
-    chown -R nextjs:nodejs /app
+    adduser -S nextjs -u 1001
 
 USER nextjs
 

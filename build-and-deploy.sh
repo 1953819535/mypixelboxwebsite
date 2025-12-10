@@ -4,6 +4,10 @@
 while true; do
     DATE=$(date '+%Y-%m-%d %H:%M:%S')
     LOG_FILE="/app/logs/build-deploy.log"
+    LAST_COMMIT_FILE="/app/.last_commit"
+    
+    # 确保日志目录存在
+    mkdir -p /app/logs
     
     # 记录开始时间
     echo "[$DATE] 开始执行网站构建任务" >> $LOG_FILE
@@ -16,10 +20,9 @@ while true; do
         echo "[$DATE] 无法获取当前commit信息，跳过本次构建" >> $LOG_FILE
     else
         LAST_COMMIT=""
-        LAST_COMMIT_FILE="/app/.last_commit"
         
         if [ -f "$LAST_COMMIT_FILE" ]; then
-            LAST_COMMIT=$(cat $LAST_COMMIT_FILE)
+            LAST_COMMIT=$(cat "$LAST_COMMIT_FILE")
         fi
         
         if [ "$CURRENT_COMMIT" = "$LAST_COMMIT" ]; then
@@ -29,7 +32,7 @@ while true; do
             
             # 拉取最新代码
             echo "[$DATE] 正在拉取最新代码..." >> $LOG_FILE
-            git pull origin main >> $LOG_FILE 2>&1
+            git pull origin main >> "$LOG_FILE" 2>&1
             
             # 检查git pull是否成功
             if [ $? -ne 0 ]; then
@@ -37,8 +40,7 @@ while true; do
             else
                 # 使用pnpm安装依赖
                 echo "[$DATE] 检查并使用pnpm安装依赖..." >> $LOG_FILE
-                # 添加超时设置和详细输出
-                timeout 300 pnpm install --verbose >> $LOG_FILE 2>&1
+                timeout 300 pnpm install --verbose >> "$LOG_FILE" 2>&1
                 
                 # 检查依赖安装是否成功
                 if [ $? -ne 0 ]; then
@@ -46,8 +48,7 @@ while true; do
                 else
                     # 使用pnpm构建项目
                     echo "[$DATE] 开始使用pnpm构建项目..." >> $LOG_FILE
-                    # 添加超时设置和详细输出
-                    timeout 600 pnpm run build --verbose >> $LOG_FILE 2>&1
+                    timeout 600 pnpm run build --verbose >> "$LOG_FILE" 2>&1
                     
                     # 检查构建是否成功
                     if [ $? -ne 0 ]; then
@@ -56,11 +57,7 @@ while true; do
                         echo "[$DATE] 项目构建成功" >> $LOG_FILE
                         
                         # 保存当前commit hash
-                        echo $CURRENT_COMMIT > $LAST_COMMIT_FILE
-                        
-                        # 可选：重启Nginx容器以应用更改
-                        # echo "[$DATE] 重启Nginx容器..." >> $LOG_FILE
-                        # docker restart pixelbox-nginx >> $LOG_FILE 2>&1
+                        echo "$CURRENT_COMMIT" > "$LAST_COMMIT_FILE"
                     fi
                 fi
             fi
