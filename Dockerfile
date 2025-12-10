@@ -4,6 +4,11 @@ FROM node:20-alpine
 # 设置工作目录
 WORKDIR /app
 
+# 解决TLS错误：更新CA证书并更换为阿里云镜像源
+RUN apk update && \
+    apk add --no-cache ca-certificates tzdata && \
+    sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
 # 全局安装PNPM和Docker CLI
 RUN npm install -g pnpm
 

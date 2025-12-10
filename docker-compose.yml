@@ -14,6 +14,12 @@ services:
       - BUILD_INTERVAL=86400  # 24小时（秒）
     restart: unless-stopped
     command: ["/app/build-and-deploy.sh"]
+    # 添加资源限制以提升性能
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
 
   # Nginx 服务器（用于提供静态文件服务）
   nginx:
