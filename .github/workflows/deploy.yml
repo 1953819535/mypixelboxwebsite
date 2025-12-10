@@ -6,6 +6,9 @@ on:
     branches: [ main ]
   # 允许手动触发部署
   workflow_dispatch:
+  # 定时触发部署（每天凌晨2点）
+  schedule:
+    - cron: '0 2 * * *'
 
 # 设置 GITHUB_TOKEN 权限，允许写入 GitHub Pages
 permissions:
