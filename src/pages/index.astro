@@ -76,7 +76,7 @@ async function fetchAlbums(): Promise<Album[]> {
 
     return albums;
   } catch (err: any) {
-    console.error("获取相册数据失败:", err.message);
+    console.error("获取相册数据失败:", err.message, JSON.stringify(err));
     // 如果获取数据失败，返回空数组或默认数据
     return [];
   }
