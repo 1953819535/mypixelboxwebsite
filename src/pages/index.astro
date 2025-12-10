@@ -1,18 +1,23 @@
 ---
 import axios from "axios";
 
+// ----------------------------------------------------------------------
+// 1. 工具函数
+// ----------------------------------------------------------------------
 function getImg(path: string, w: number = 0, q: number = 80) {
   if (!path) return "";
   if (path.startsWith("http")) return path;
   const cleanPath = path.replace(/^\//, "");
-  // 使用环境变量配置的图片服务器域名，不提供默认值
+  // 使用环境变量配置的图片服务器域名
   const imageUrl = import.meta.env.IMAGE_URL;
-  if (!imageUrl) return ""; // 如果没有配置环境变量，返回空字符串
+  if (!imageUrl) return ""; 
   if (!w) return `${imageUrl}/${cleanPath}`;
   return `${imageUrl}/cdn-cgi/image/width=${w},quality=${q},format=auto/${cleanPath}`;
 }
 
-// 4. 定义数据类型
+// ----------------------------------------------------------------------
+// 2. 类型定义
+// ----------------------------------------------------------------------
 interface Photo {
   _id: string;
   albumId: string;
@@ -44,13 +49,13 @@ interface Album {
   updatedAt?: string;
 }
 
-// 5. 动态获取相册数据
+// ----------------------------------------------------------------------
+// 3. 数据获取
+// ----------------------------------------------------------------------
 async function fetchAlbums(): Promise<Album[]> {
   try {
-    // 使用环境变量作为API基础URL，不提供默认值
     const API_BASE_URL = import.meta.env.API_BASE_URL;
 
-    // 如果没有配置API地址，返回空数组
     if (!API_BASE_URL) {
       console.warn("未配置 API_BASE_URL 环境变量");
       return [];
@@ -58,43 +63,36 @@ async function fetchAlbums(): Promise<Album[]> {
 
     console.log("获取数据开始", `${API_BASE_URL}/api/albums/gallery/public`);
 
-    // 从真实API获取数据
     const response = await axios.get(
       `${API_BASE_URL}/api/albums/gallery/public`
     );
     const apiData = response.data;
 
-    // 检查API响应是否成功
     if (apiData.code !== 0) {
       throw new Error(apiData.message || "API请求失败");
     }
 
     console.log("获取数据成功");
 
-    // 处理数据
     const albums: Album[] = apiData.data.map((album: any) => ({
       ...album,
       photos: album.photos.map((photo: any) => ({
         ...photo,
-        // 保持原始数据结构
       })),
     }));
 
     return albums;
   } catch (err: any) {
     console.error("获取相册数据失败:", err.message, JSON.stringify(err));
-    // 如果获取数据失败，返回空数组或默认数据
     return [];
   }
 }
 
-// 6. 在服务端获取数据
+// 服务端执行获取
 const albums: Album[] = await fetchAlbums();
 
-// 7. 标题更新为 WANDER
+// 页面配置
 const pageTitle = "WANDER | Some Portfolio";
-
-// 添加测试标识
 const isTestMode = import.meta.env.TEST_MODE === "true";
 ---
 
@@ -108,14 +106,12 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
     />
     <meta name="generator" content={Astro.generator} />
     <title>{pageTitle}</title>
-
-    <!-- 测试模式下的特殊标记 -->
     {isTestMode && <meta name="test-mode" content="enabled" />}
   </head>
   <body>
     <!-- ==================== 导航系统 ==================== -->
-
-    <!-- 1. 汉堡按钮 -->
+    
+    <!-- 1. 汉堡按钮 (固定在右上角) -->
     <button id="menu-btn" class="nav-btn">
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -135,9 +131,10 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
       >
     </button>
 
-    <!-- 2. 全屏菜单遮罩 (结构调整以支持滚动) -->
+    <!-- 2. 全屏菜单 (Overlay) -->
     <div id="menu-overlay" class="menu-overlay">
-      <!-- 内部容器：负责居中和撑开高度 -->
+      
+      <!-- A. 滚动区域：包含菜单列表 -->
       <div class="menu-scroll-wrapper">
         <div class="menu-content">
           <p class="menu-label">INDEX</p>
@@ -155,43 +152,43 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
               ))
             }
           </ul>
-          <button id="close-menu" class="close-btn">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><circle cx="12" cy="12" r="10"></circle><line
-                x1="15"
-                y1="9"
-                x2="9"
-                y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg
-            >
-          </button>
         </div>
       </div>
+
+      <!-- B. 关闭按钮：独立于滚动区域，固定在底部 -->
+      <button id="close-menu" class="close-btn-fixed">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="32"
+          height="32"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><circle cx="12" cy="12" r="10"></circle><line
+            x1="15"
+            y1="9"
+            x2="9"
+            y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg
+        >
+      </button>
+
     </div>
 
     <!-- ==================== 主内容滚动区 ==================== -->
-
     <main class="snap-container">
-      <!-- 1. 开场页 (Intro - 更新标题) -->
+      
+      <!-- 1. Intro Section -->
       <section id="intro" class="snap-section intro-section">
         <div class="intro-content">
           <h1>WANDER</h1>
           <p>Some Photography Log</p>
-          <!-- 测试模式下的特殊显示 -->
           {
             isTestMode && (
               <div style="margin-top: 20px; padding: 10px; background: #ffeb3b; color: #000; border-radius: 4px;">
                 <strong>测试模式已启用</strong>
-                <br />
-                通过端口 8080 可以直接访问此页面
               </div>
             )
           }
@@ -208,36 +205,38 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         </div>
       </section>
 
-      <!-- 2. 相册遍历 -->
+      <!-- 2. Albums Loop -->
       {
         albums.map((album, index) => (
           <>
-            {/* --- A. 章节封面页 --- */}
+            {/* 章节封面 (图文分离布局) */}
             {album.coverPhotoUrl && (
               <section
                 id={`album-${album.id}`}
-                class="snap-section cover-section"
+                class="snap-section cover-layout"
               >
-                <div class="bg-layer">
+                <div class="cover-image-area">
                   <img
-                    src={getImg(album.coverPhotoUrl, 1920)}
-                    class="bg-img"
+                    src={getImg(album.coverPhotoUrl, 1600)}
                     alt={`Cover of ${album.name}`}
                     loading="lazy"
                   />
-                  <div class="bg-overlay" />
                 </div>
-                <div class="text-layer">
-                  <span class="chapter-label">Chapter 0{index + 1}</span>
-                  <h2 class="chapter-title">{album.name}</h2>
-                  {album.description && (
-                    <p class="chapter-desc">{album.description}</p>
-                  )}
+                
+                <div class="cover-info-area">
+                  <div class="cover-info-inner">
+                    <span class="chapter-label">Chapter 0{index + 1}</span>
+                    <h2 class="chapter-title">{album.name}</h2>
+                    <div class="chapter-divider"></div>
+                    {album.description && (
+                      <p class="chapter-desc">{album.description}</p>
+                    )}
+                  </div>
                 </div>
               </section>
             )}
 
-            {/* --- B. 照片详情页 --- */}
+            {/* 照片详情页 */}
             {album.photos.map((photo) => {
               const isPortrait = photo.height > photo.width;
               const photoSrc = getImg(photo.fileID, 1600);
@@ -287,12 +286,6 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
       function toggleMenu() {
         if (!overlay) return;
         overlay.classList.toggle("active");
-
-        // 切换时禁用/启用背景滚动 (可选优化)
-        if (overlay.classList.contains("active")) {
-          // 这里我们不需要禁用 body scroll，因为 snap-container 才是滚动的那个
-          // 但如果想更严谨，可以阻止底层事件
-        }
       }
 
       menuBtn?.addEventListener("click", toggleMenu);
@@ -315,7 +308,7 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
     <style>
       /* ================= 全局配置 ================= */
       :root {
-        --bg-color: #050505; /* 比纯黑稍微浅一点点，更有质感 */
+        --bg-color: #050505;
         --text-main: #e4e4e7;
         --text-sub: #71717a;
         --accent: #f97316;
@@ -331,10 +324,7 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
       body {
         background-color: var(--bg-color);
         color: var(--text-main);
-        font-family:
-          system-ui,
-          -apple-system,
-          sans-serif;
+        font-family: system-ui, -apple-system, sans-serif;
         overflow: hidden; /* 禁用body滚动 */
       }
 
@@ -343,9 +333,10 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         border: none;
         cursor: pointer;
         color: inherit;
+        -webkit-tap-highlight-color: transparent;
       }
 
-      /* ================= 滚动容器 (Scroll Snap) ================= */
+      /* ================= 滚动容器 (Snap) ================= */
       .snap-container {
         height: 100dvh;
         width: 100vw;
@@ -370,7 +361,7 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         display: flex;
       }
 
-      /* ================= 导航菜单 (核心修改部分) ================= */
+      /* ================= 导航菜单 (核心修复部分) ================= */
       .nav-btn {
         position: fixed;
         top: 24px;
@@ -388,50 +379,54 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         background: rgba(255, 255, 255, 0.1);
       }
 
-      /* 菜单遮罩层：本身可以滚动 */
       .menu-overlay {
         position: fixed;
         inset: 0;
         z-index: 90;
-        background: rgba(0, 0, 0, 0.96); /* 背景更深一点 */
+        background: rgba(0, 0, 0, 0.98);
         backdrop-filter: blur(20px);
-
-        /* 关键：允许内容溢出时滚动 */
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
-
-        /* 隐藏菜单滚动条 */
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-
-        /* 动画初始状态 */
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.4s ease;
+        /* 遮罩层本身不滚动，它包含滚动容器和固定按钮 */
       }
-      .menu-overlay::-webkit-scrollbar {
-        display: none;
-      }
-
       .menu-overlay.active {
         opacity: 1;
         pointer-events: auto;
       }
 
-      /* 菜单滚动包裹层：保证内容少时居中，多时撑开 */
+      /* 滚动容器：填满遮罩，负责滚动 */
       .menu-scroll-wrapper {
-        min-height: 100%;
-        width: 100%;
-        display: flex;
-        align-items: center; /* 垂直居中 */
-        justify-content: center; /* 水平居中 */
-        padding: 80px 20px; /* 加上下边距，防止第一项和最后一项贴边 */
+        position: absolute;
+        inset: 0;
+        overflow-y: auto; /* 允许垂直滚动 */
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        
+        display: flex;        /* 关键：Flex布局 */
+        flex-direction: column; 
+        
+        /* 底部留出足够空间，防止内容被底部的固定按钮遮挡 */
+        padding-bottom: 120px; 
+        
+        /* 隐藏滚动条 */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .menu-scroll-wrapper::-webkit-scrollbar {
+        display: none;
       }
 
+      /* 菜单内容容器 */
       .menu-content {
-        text-align: center;
+        /* 关键：margin: auto 在 Flex 容器中会自动实现完美的垂直+水平居中 
+           同时保证当内容超出屏幕时，依然可以正常滚动 */
+        margin: auto; 
+        
         width: 100%;
         max-width: 600px;
+        text-align: center;
+        padding: 40px 20px; /* 顶部留白，防止贴顶 */
       }
 
       .menu-label {
@@ -450,11 +445,12 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
       }
 
       .menu-link {
-        font-size: clamp(1.5rem, 5vw, 2.5rem); /* 响应式字体 */
+        font-size: clamp(1.8rem, 6vw, 3rem);
         font-weight: 200;
         color: #71717a;
         transition: all 0.3s;
         display: inline-block;
+        line-height: 1.2;
       }
       .menu-link:hover {
         color: white;
@@ -473,17 +469,22 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         opacity: 1;
       }
 
-      .close-btn {
-        margin-top: 60px;
+      /* 固定在底部的关闭按钮 */
+      .close-btn-fixed {
+        position: absolute;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
         color: var(--text-sub);
         transition: color 0.3s;
         padding: 10px;
       }
-      .close-btn:hover {
+      .close-btn-fixed:hover {
         color: white;
       }
 
-      /* ================= 页面：Intro ================= */
+      /* ================= Intro Section ================= */
       .intro-section {
         flex-direction: column;
         align-items: center;
@@ -492,8 +493,8 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         background-color: #0a0a0a;
       }
       .intro-content h1 {
-        font-size: clamp(3rem, 12vw, 6rem); /* 巨大字体 */
-        font-weight: 100; /* 极细 */
+        font-size: clamp(3rem, 12vw, 6rem);
+        font-weight: 100;
         letter-spacing: 0.1em;
         margin-bottom: 24px;
         line-height: 1;
@@ -512,54 +513,57 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         animation: bounce 2s infinite;
       }
       @keyframes bounce {
-        0%,
-        20%,
-        50%,
-        80%,
-        100% {
-          transform: translateY(0);
-        }
-        40% {
-          transform: translateY(-10px);
-        }
-        60% {
-          transform: translateY(-5px);
-        }
+        0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+        40% { transform: translateY(-10px); }
+        60% { transform: translateY(-5px); }
       }
 
-      /* ================= 页面：Cover (章节封面) ================= */
-      .cover-section {
+      /* ================= 封面布局 (Cover Layout) ================= */
+      .cover-layout {
+        flex-direction: column;
+      }
+
+      /* 移动端/默认：图在上，文在下 */
+      .cover-image-area {
+        flex: 1;
+        width: 100%;
+        min-height: 0;
+        display: flex;
         align-items: center;
         justify-content: center;
-      }
-      .bg-layer {
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-      }
-      .bg-img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        opacity: 0.5;
-        filter: grayscale(20%); /* 轻微去色，增加高级感 */
-      }
-      .bg-overlay {
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(
-          circle,
-          transparent 0%,
-          var(--bg-color) 100%
-        );
-      }
-      .text-layer {
+        padding: 30px;
+        background-color: var(--bg-color);
         position: relative;
-        z-index: 10;
-        text-align: center;
-        padding: 24px;
-        mix-blend-mode: screen;
       }
+      
+      .cover-image-area img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        display: block;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      }
+
+      .cover-info-area {
+        flex: none;
+        width: 100%;
+        background: linear-gradient(to top, var(--bg-color), rgba(5,5,5,0.95), transparent);
+        padding: 10px 24px 50px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+      
+      .cover-info-inner {
+        max-width: 600px;
+        margin: 0 auto;
+        width: 100%;
+        text-align: left;
+      }
+
       .chapter-label {
         display: block;
         color: var(--accent);
@@ -569,24 +573,55 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         text-transform: uppercase;
         margin-bottom: 12px;
       }
+
       .chapter-title {
-        font-size: clamp(3rem, 10vw, 6rem);
-        font-weight: 100;
-        letter-spacing: -0.02em;
-        margin-bottom: 24px;
-      }
-      .chapter-desc {
-        color: #d4d4d8;
-        max-width: 400px;
-        margin: 0 auto;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        padding-top: 20px;
+        font-size: 2.5rem;
         font-weight: 300;
-        line-height: 1.6;
-        font-size: 14px;
+        color: #fff;
+        line-height: 1.1;
+        margin-bottom: 16px;
       }
 
-      /* ================= 页面：Photo Layout ================= */
+      .chapter-divider {
+        width: 40px;
+        height: 2px;
+        background: rgba(255,255,255,0.2);
+        margin-bottom: 16px;
+      }
+
+      .chapter-desc {
+        color: #a1a1aa;
+        font-size: 14px;
+        line-height: 1.6;
+        font-weight: 300;
+      }
+
+      /* 桌面端适配：左右布局 */
+      @media (min-width: 768px) {
+        .cover-layout {
+          flex-direction: row;
+        }
+        .cover-image-area {
+          padding: 60px;
+        }
+        .cover-info-area {
+          width: 420px;
+          height: 100%;
+          background: var(--panel-bg);
+          border-left: 1px solid rgba(255, 255, 255, 0.05);
+          justify-content: center;
+          padding: 60px;
+        }
+        .chapter-title {
+          font-size: 3.5rem;
+          margin-bottom: 24px;
+        }
+        .chapter-desc {
+          font-size: 15px;
+        }
+      }
+
+      /* ================= Photo Layout ================= */
       .photo-layout {
         flex-direction: column;
       }
@@ -608,7 +643,7 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         height: auto;
         object-fit: contain;
         display: block;
-        box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5); /* 给图片加一点阴影 */
+        box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
       }
 
       .text-area {
