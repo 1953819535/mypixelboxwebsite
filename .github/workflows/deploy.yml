@@ -29,22 +29,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: 'pnpm'  # 改为 pnpm 缓存
+          cache: 'pnpm'
           
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
         with:
-          version: 9  # 使用 pnpm 版本 9
+          version: 8
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
         
       - name: Install dependencies
-        run: pnpm install  # 改为 pnpm install
+        run: pnpm install
         
       - name: Build with Astro
         run: |
-          pnpm run build  # 改为 pnpm run build
+          pnpm run build
         env:
           # 必须设置的环境变量
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
