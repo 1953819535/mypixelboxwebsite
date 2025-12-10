@@ -1,55 +1,31 @@
+version: '3.8'
+
 services:
-  # 主应用服务
-  website:
+  # 网站构建服务
+  website-builder:
     build: .
-    ports:
-      - "4321:4321"
+    container_name: pixelbox-builder
     volumes:
-      # 挂载构建产物目录，方便外部访问
-      - ./dist:/app/dist
-      # 挂载日志目录
-      - ./logs:/var/log
-      # 挂载SSL证书（项目内证书路径）
-      - ./certs:/app/certs:ro
+      - /srv/apps/mypixelboxwebsite/dist:/app/dist
+      - /srv/apps/mypixelboxwebsite/logs:/app/logs
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /srv/apps/mypixelboxwebsite:/srv/apps/mypixelboxwebsite
     environment:
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:3000}
-      - IMAGE_URL=${IMAGE_URL:-https://images.wangdengfeng.top}
-    networks:
-      - app-network
-    command: pnpm dev
-    
-  # 定时任务服务
-  scheduler:
-    build: .
-    volumes:
-      # 挂载构建产物目录
-      - ./dist:/app/dist
-      # 挂载日志目录
-      - ./logs:/var/log
-    environment:
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:3000}
-      - IMAGE_URL=${IMAGE_URL:-https://images.wangdengfeng.top}
-    networks:
-      - app-network
-    # 挂载并应用crontab配置
-    entrypoint: [
-      "/bin/sh",
-      "-c",
-      "
-      # 复制定时任务配置
-      cp /app/crontab.conf /etc/crontabs/root && \
-      # 设置脚本执行权限
-      chmod +x /app/scripts/scheduled-task.sh && \
-      # 启动定时任务服务
-      crond -f -l 8
-      "
-    ]
+      - BUILD_INTERVAL=86400  # 24小时（秒）
     restart: unless-stopped
+    command: ["/app/build-and-deploy.sh"]
 
-networks:
-  app-network:
-    driver: bridge
-
-volumes:
-  dist:
-  logs:
+  # Nginx 服务器（用于提供静态文件服务）
+  nginx:
+    image: nginx:alpine
+    container_name: pixelbox-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /srv/apps/mypixelboxwebsite/dist:/usr/share/nginx/html:ro
+      - /srv/apps/mypixelboxwebsite/nginx.conf:/etc/nginx/nginx.conf
+      - /srv/apps/mypixelboxwebsite/logs/nginx:/var/log/nginx
+    depends_on:
+      - website-builder
+    restart: unless-stopped

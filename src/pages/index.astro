@@ -1,26 +1,91 @@
 ---
-// 1. 导入数据
-import albums from '../data/albums.json';
-
-// 2. 图片处理工具函数
-const ENV_IMAGE_URL = import.meta.env.IMAGE_URL || '';
+import axios from 'axios';
 
 function getImg(path: string, w: number = 0, q: number = 80) {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   const cleanPath = path.replace(/^\//, '');
-  if (!w) return `${ENV_IMAGE_URL}/${cleanPath}`;
-  return `${ENV_IMAGE_URL}/cdn-cgi/image/width=${w},quality=${q},format=auto/${cleanPath}`;
+  if (!w) return `https://images.wangdengfeng.top/${cleanPath}`;
+  return `https://images.wangdengfeng.top/cdn-cgi/image/width=${w},quality=${q},format=auto/${cleanPath}`;
 }
 
-// 标题更新为 WANDER
+// 4. 定义数据类型
+interface Photo {
+  _id: string;
+  albumId: string;
+  fileID: string;
+  description: string;
+  order: number;
+  width: number;
+  height: number;
+  isFeatured: boolean;
+  createTime?: string;
+  _openid?: string;
+  updatedAt?: string;
+  __v?: number;
+  userId?: string;
+  createdAt?: string;
+}
+
+interface Album {
+  id: string;
+  photos: Photo[];
+  name: string;
+  description: string;
+  coverPhotoUrl: string;
+  order: number;
+  createTime: string;
+  _openid?: string;
+  likes?: string[];
+  __v?: number;
+  updatedAt?: string;
+}
+
+// 5. 动态获取相册数据
+async function fetchAlbums(): Promise<Album[]> {
+  try {
+    // 使用固定的API基础URL
+    const API_BASE_URL = 'http://localhost:3000';
+    
+    // 从真实API获取数据
+    const response = await axios.get(`${API_BASE_URL}/api/albums/gallery/local`);
+    const apiData = response.data;
+    
+    // 检查API响应是否成功
+    if (apiData.code !== 0) {
+      throw new Error(apiData.message || 'API请求失败');
+    }
+
+    console.log('获取数据成功');
+    
+    // 处理数据
+    const albums: Album[] = apiData.data.map((album: any) => ({
+      ...album,
+      photos: album.photos.map((photo: any) => ({
+        ...photo,
+        // 保持原始数据结构
+      }))
+    }));
+    
+    return albums;
+  } catch (err: any) {
+    console.error('获取相册数据失败:', err.message);
+    // 如果获取数据失败，返回空数组或默认数据
+    return [];
+  }
+}
+
+// 6. 在服务端获取数据
+const albums: Album[] = await fetchAlbums();
+
+// 7. 标题更新为 WANDER
 const pageTitle = "WANDER | Some Portfolio";
 ---
 
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="generator" content={Astro.generator} />
     <title>{pageTitle}</title>
@@ -349,7 +414,7 @@ const pageTitle = "WANDER | Some Portfolio";
             position: absolute; inset: 0;
             background: radial-gradient(circle, transparent 0%, var(--bg-color) 100%);
         }
-        .text-layer { relative; z-index: 10; text-align: center; padding: 24px; mix-blend-mode: screen; }
+        .text-layer { position: relative; z-index: 10; text-align: center; padding: 24px; mix-blend-mode: screen; }
         .chapter-label {
             display: block; color: var(--accent); font-weight: bold;
             font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 12px;
