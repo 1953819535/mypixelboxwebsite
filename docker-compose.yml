@@ -1,39 +1,22 @@
-version: '3.8'
-
 services:
-  # 网站构建服务
   website-builder:
     build: .
-    container_name: pixelbox-builder
     volumes:
-      - /srv/apps/mypixelboxwebsite/dist:/app/dist
-      - /srv/apps/mypixelboxwebsite/logs:/app/logs
-      - /var/run/docker.sock:/var/run/docker.sock
       - /srv/apps/mypixelboxwebsite:/srv/apps/mypixelboxwebsite
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - BUILD_INTERVAL=86400  # 24小时（秒）
+      - BUILD_INTERVAL=86400
     restart: unless-stopped
     command: ["/app/build-and-deploy.sh"]
-    # 添加资源限制以提升性能
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
 
-  # Nginx 服务器（用于提供静态文件服务）
   nginx:
     image: nginx:alpine
-    container_name: pixelbox-nginx
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
     volumes:
       - /srv/apps/mypixelboxwebsite/dist:/usr/share/nginx/html:ro
       - /srv/apps/mypixelboxwebsite/nginx.conf:/etc/nginx/nginx.conf
-      - /srv/apps/mypixelboxwebsite/logs/nginx:/var/log/nginx
-      - /srv/apps/mypixelboxwebsite/ssl:/etc/nginx/ssl:ro
     depends_on:
       - website-builder
     restart: unless-stopped

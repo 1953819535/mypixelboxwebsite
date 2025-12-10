@@ -43,11 +43,17 @@ while true; do
             else
                 # 使用pnpm安装依赖
                 echo "[$DATE] 检查并使用pnpm安装依赖..." >> $LOG_FILE
-                pnpm install >> $LOG_FILE 2>&1
+                # 添加超时设置和详细输出
+                timeout 300 pnpm install --verbose >> $LOG_FILE 2>&1
                 
-                # 使用pnpm构建项目
-                echo "[$DATE] 开始使用pnpm构建项目..." >> $LOG_FILE
-                pnpm run build >> $LOG_FILE 2>&1
+                # 检查依赖安装是否成功
+                if [ $? -ne 0 ]; then
+                    echo "[$DATE] 依赖安装失败或超时" >> $LOG_FILE
+                else
+                    # 使用pnpm构建项目
+                    echo "[$DATE] 开始使用pnpm构建项目..." >> $LOG_FILE
+                    # 添加超时设置和详细输出
+                    timeout 600 pnpm run build --verbose >> $LOG_FILE 2>&1
                 
                 # 检查构建是否成功
                 if [ $? -ne 0 ]; then
@@ -66,8 +72,8 @@ while true; do
         fi
     fi
     
-    # 获取构建间隔时间（默认24小时）
-    BUILD_INTERVAL=${BUILD_INTERVAL:-86400}
+    # 获取构建间隔时间（默认1小时）
+    BUILD_INTERVAL=${BUILD_INTERVAL:-3600}
     
     echo "[$DATE] 等待 $BUILD_INTERVAL 秒后再次执行..." >> $LOG_FILE
     
