@@ -57,6 +57,14 @@ while true; do
                     else
                         echo "[$DATE] 项目构建成功" >> "$LOG_FILE"
                         
+                        # 确保构建输出目录存在并复制文件（如果需要）
+                        if [ -d "/app/dist" ] && [ "$(ls -A /app/dist)" ]; then
+                            echo "[$DATE] 复制构建文件到共享目录..." >> "$LOG_FILE"
+                            cp -r /app/dist/* /srv/apps/mypixelboxwebsite/dist/ 2>>"$LOG_FILE" || echo "[$DATE] 警告：复制文件时出错" >> "$LOG_FILE"
+                        else
+                            echo "[$DATE] 构建目录为空或不存在" >> "$LOG_FILE"
+                        fi
+                        
                         # 保存当前commit hash
                         echo "$CURRENT_COMMIT" > "$LAST_COMMIT_FILE"
                     fi
