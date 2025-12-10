@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# 安装openssh-client（如果不存在）
+if ! command -v ssh >/dev/null 2>&1; then
+    echo "Installing openssh-client..."
+    apk add --no-cache openssh-client
+fi
+
 # 主循环
 while true; do
     # 初始化变量
