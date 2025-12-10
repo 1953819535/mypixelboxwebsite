@@ -7,7 +7,7 @@ WORKDIR /app
 # 更换为阿里云镜像源并安装必要工具
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
     apk update && \
-    apk add --no-cache docker-cli git && \
+    apk add --no-cache docker-cli git bash && \
     npm install -g pnpm
 
 # 复制依赖文件并安装依赖
@@ -26,4 +26,5 @@ RUN mkdir -p /app/dist /app/logs && \
 EXPOSE 4321
 
 # 启动构建脚本
+ENTRYPOINT ["/bin/sh"]
 CMD ["/app/build-and-deploy.sh"]
