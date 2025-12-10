@@ -12,8 +12,9 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
-      - "443:443"
+      - "8081:80"      # 将主机的8081端口映射到容器的80端口
+      - "8443:443"     # 将主机的8443端口映射到容器的443端口
+      - "8080:8080"
     volumes:
       - /srv/apps/mypixelboxwebsite/dist:/usr/share/nginx/html:ro
       - /srv/apps/mypixelboxwebsite/nginx.conf:/etc/nginx/nginx.conf
