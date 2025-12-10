@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  
+[build.environment]
+  NODE_VERSION = "20"
+
+# 重定向所有页面到 index.html 以支持客户端路由
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

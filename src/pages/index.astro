@@ -46,8 +46,8 @@ interface Album {
 // 5. 动态获取相册数据
 async function fetchAlbums(): Promise<Album[]> {
   try {
-    // 使用固定的API基础URL
-    const API_BASE_URL = 'http://localhost:3000';
+    // 使用环境变量或默认值作为API基础URL
+    const API_BASE_URL = import.meta.env.API_BASE_URL || 'http://localhost:3000';
     
     // 从真实API获取数据
     const response = await axios.get(`${API_BASE_URL}/api/albums/gallery/local`);
