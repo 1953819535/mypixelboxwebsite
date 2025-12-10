@@ -19,6 +19,7 @@ services:
     volumes:
       - /srv/apps/mypixelboxwebsite/dist:/usr/share/nginx/html:ro
       - /srv/apps/mypixelboxwebsite/nginx.conf:/etc/nginx/nginx.conf
+      - /srv/apps/mypixelboxwebsite/ssl:/etc/nginx/ssl:ro  # 添加SSL证书目录映射
     depends_on:
       - website-builder
     restart: unless-stopped
