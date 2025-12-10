@@ -22,10 +22,12 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"
     volumes:
       - /srv/apps/mypixelboxwebsite/dist:/usr/share/nginx/html:ro
       - /srv/apps/mypixelboxwebsite/nginx.conf:/etc/nginx/nginx.conf
       - /srv/apps/mypixelboxwebsite/logs/nginx:/var/log/nginx
+      - /srv/apps/mypixelboxwebsite/ssl:/etc/nginx/ssl:ro
     depends_on:
       - website-builder
     restart: unless-stopped

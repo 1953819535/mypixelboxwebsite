@@ -1,6 +1,8 @@
 ---
 import axios from 'axios';
 
+const ENV_IMAGE_URL = import.meta.env.IMAGE_URL || '';
+
 function getImg(path: string, w: number = 0, q: number = 80) {
   if (!path) return '';
   if (path.startsWith('http')) return path;
@@ -80,6 +82,9 @@ const albums: Album[] = await fetchAlbums();
 
 // 7. 标题更新为 WANDER
 const pageTitle = "WANDER | Some Portfolio";
+
+// 添加测试标识
+const isTestMode = import.meta.env.TEST_MODE === 'true';
 ---
 
 <html lang="zh-CN">
@@ -89,6 +94,11 @@ const pageTitle = "WANDER | Some Portfolio";
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="generator" content={Astro.generator} />
     <title>{pageTitle}</title>
+    
+    <!-- 测试模式下的特殊标记 -->
+    {isTestMode && (
+      <meta name="test-mode" content="enabled" />
+    )}
   </head>
   <body>
     
@@ -133,6 +143,13 @@ const pageTitle = "WANDER | Some Portfolio";
             <div class="intro-content">
                 <h1>WANDER</h1>
                 <p>Some Photography Log</p>
+                <!-- 测试模式下的特殊显示 -->
+                {isTestMode && (
+                  <div style="margin-top: 20px; padding: 10px; background: #ffeb3b; color: #000; border-radius: 4px;">
+                    <strong>测试模式已启用</strong>
+                    <br/>通过端口 8080 可以直接访问此页面
+                  </div>
+                )}
             </div>
             <div class="scroll-indicator">
                 <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"></path></svg>
