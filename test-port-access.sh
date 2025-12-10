@@ -13,7 +13,7 @@ fi
 echo "服务器IP: $SERVER_IP"
 echo ""
 
-# 测试8081端口 (原80端口)
+# 测试8081端口 (替代80端口)
 echo "1. 测试HTTP访问 (端口8081)..."
 curl -I -m 10 http://$SERVER_IP:8081 2>/dev/null | head -1
 if [ $? -eq 0 ]; then
@@ -33,7 +33,7 @@ else
 fi
 echo ""
 
-# 测试8443端口 (原443端口)
+# 测试8443端口 (替代443端口)
 echo "3. 测试HTTPS访问 (端口8443)..."
 curl -I -k -m 10 https://$SERVER_IP:8443 2>/dev/null | head -1
 if [ $? -eq 0 ]; then

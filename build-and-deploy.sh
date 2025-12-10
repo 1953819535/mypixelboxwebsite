@@ -3,17 +3,17 @@
 # 设置变量
 LOG_FILE="/srv/apps/mypixelboxwebsite/logs/build-deploy.log"
 LAST_COMMIT_FILE="/srv/apps/mypixelboxwebsite/.last_commit"
-DATE=$(date '+%Y-%m-%d %H:%M:%S')
 
-# 创建日志目录
-mkdir -p /srv/apps/mypixelboxwebsite/logs
-
-# 记录开始时间
-echo "[$DATE] 开始执行网站构建任务" >> $LOG_FILE
+# 创建日志目录（在容器内部）
+mkdir -p /app/logs
 
 # 主循环
 while true; do
     DATE=$(date '+%Y-%m-%d %H:%M:%S')
+    LOG_FILE="/app/logs/build-deploy.log"
+    
+    # 记录开始时间
+    echo "[$DATE] 开始执行网站构建任务" >> $LOG_FILE
     
     # 检查是否有新的提交
     CURRENT_COMMIT=$(git rev-parse HEAD 2>/dev/null)
@@ -54,26 +54,27 @@ while true; do
                     echo "[$DATE] 开始使用pnpm构建项目..." >> $LOG_FILE
                     # 添加超时设置和详细输出
                     timeout 600 pnpm run build --verbose >> $LOG_FILE 2>&1
-                
-                # 检查构建是否成功
-                if [ $? -ne 0 ]; then
-                    echo "[$DATE] 项目构建失败" >> $LOG_FILE
-                else
-                    echo "[$DATE] 项目构建成功" >> $LOG_FILE
                     
-                    # 保存当前commit hash
-                    echo $CURRENT_COMMIT > $LAST_COMMIT_FILE
-                    
-                    # 可选：重启Nginx容器以应用更改
-                    # echo "[$DATE] 重启Nginx容器..." >> $LOG_FILE
-                    # docker restart pixelbox-nginx >> $LOG_FILE 2>&1
+                    # 检查构建是否成功
+                    if [ $? -ne 0 ]; then
+                        echo "[$DATE] 项目构建失败或超时" >> $LOG_FILE
+                    else
+                        echo "[$DATE] 项目构建成功" >> $LOG_FILE
+                        
+                        # 保存当前commit hash
+                        echo $CURRENT_COMMIT > $LAST_COMMIT_FILE
+                        
+                        # 可选：重启Nginx容器以应用更改
+                        # echo "[$DATE] 重启Nginx容器..." >> $LOG_FILE
+                        # docker restart pixelbox-nginx >> $LOG_FILE 2>&1
+                    fi
                 fi
             fi
         fi
     fi
     
-    # 获取构建间隔时间（默认1小时）
-    BUILD_INTERVAL=${BUILD_INTERVAL:-3600}
+    # 获取构建间隔时间（默认24小时）
+    BUILD_INTERVAL=${BUILD_INTERVAL:-86400}
     
     echo "[$DATE] 等待 $BUILD_INTERVAL 秒后再次执行..." >> $LOG_FILE
     
