@@ -1,0 +1,55 @@
+services:
+  # 主应用服务
+  website:
+    build: .
+    ports:
+      - "4321:4321"
+    volumes:
+      # 挂载构建产物目录，方便外部访问
+      - ./dist:/app/dist
+      # 挂载日志目录
+      - ./logs:/var/log
+      # 挂载SSL证书（项目内证书路径）
+      - ./certs:/app/certs:ro
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:3000}
+      - IMAGE_URL=${IMAGE_URL:-https://images.wangdengfeng.top}
+    networks:
+      - app-network
+    command: pnpm dev
+    
+  # 定时任务服务
+  scheduler:
+    build: .
+    volumes:
+      # 挂载构建产物目录
+      - ./dist:/app/dist
+      # 挂载日志目录
+      - ./logs:/var/log
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:3000}
+      - IMAGE_URL=${IMAGE_URL:-https://images.wangdengfeng.top}
+    networks:
+      - app-network
+    # 挂载并应用crontab配置
+    entrypoint: [
+      "/bin/sh",
+      "-c",
+      "
+      # 复制定时任务配置
+      cp /app/crontab.conf /etc/crontabs/root && \
+      # 设置脚本执行权限
+      chmod +x /app/scripts/scheduled-task.sh && \
+      # 启动定时任务服务
+      crond -f -l 8
+      "
+    ]
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  dist:
+  logs:

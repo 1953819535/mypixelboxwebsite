@@ -1,16 +1,416 @@
 ---
+// 1. 导入数据
+import albums from '../data/albums.json';
 
+// 2. 图片处理工具函数
+const ENV_IMAGE_URL = import.meta.env.IMAGE_URL || '';
+
+function getImg(path: string, w: number = 0, q: number = 80) {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const cleanPath = path.replace(/^\//, '');
+  if (!w) return `${ENV_IMAGE_URL}/${cleanPath}`;
+  return `${ENV_IMAGE_URL}/cdn-cgi/image/width=${w},quality=${q},format=auto/${cleanPath}`;
+}
+
+// 标题更新为 WANDER
+const pageTitle = "WANDER | Some Portfolio";
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    
+    <!-- ==================== 导航系统 ==================== -->
+    
+    <!-- 1. 汉堡按钮 -->
+    <button id="menu-btn" class="nav-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+
+    <!-- 2. 全屏菜单遮罩 (结构调整以支持滚动) -->
+    <div id="menu-overlay" class="menu-overlay">
+        <!-- 内部容器：负责居中和撑开高度 -->
+        <div class="menu-scroll-wrapper">
+            <div class="menu-content">
+                <p class="menu-label">INDEX</p>
+                <ul class="menu-list">
+                    <li>
+                        <button data-goto="intro" class="menu-link">Home</button>
+                    </li>
+                    {albums.map((album, index) => (
+                        <li>
+                            <button data-goto={`album-${album.id}`} class="menu-link">
+                                {album.name} <span class="menu-num">0{index + 1}</span>
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+                <button id="close-menu" class="close-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 主内容滚动区 ==================== -->
+    
+    <main class="snap-container">
+        
+        <!-- 1. 开场页 (Intro - 更新标题) -->
+        <section id="intro" class="snap-section intro-section">
+            <div class="intro-content">
+                <h1>WANDER</h1>
+                <p>Some Photography Log</p>
+            </div>
+            <div class="scroll-indicator">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"></path></svg>
+            </div>
+        </section>
+
+        <!-- 2. 相册遍历 -->
+        {albums.map((album, index) => (
+            <>
+                {/* --- A. 章节封面页 --- */}
+                {album.coverPhotoUrl && (
+                    <section id={`album-${album.id}`} class="snap-section cover-section">
+                        <div class="bg-layer">
+                            <img 
+                                src={getImg(album.coverPhotoUrl, 1920)} 
+                                class="bg-img"
+                                alt={`Cover of ${album.name}`} 
+                                loading="lazy"
+                            />
+                            <div class="bg-overlay"></div>
+                        </div>
+                        <div class="text-layer">
+                            <span class="chapter-label">Chapter 0{index + 1}</span>
+                            <h2 class="chapter-title">{album.name}</h2>
+                            {album.description && (
+                                <p class="chapter-desc">{album.description}</p>
+                            )}
+                        </div>
+                    </section>
+                )}
+
+                {/* --- B. 照片详情页 --- */}
+                {album.photos.map((photo) => {
+                    const isPortrait = photo.height > photo.width;
+                    const photoSrc = getImg(photo.fileID, 1600); 
+
+                    return (
+                        <section class={`snap-section photo-layout ${isPortrait ? 'layout-portrait' : 'layout-landscape'}`}>
+                            <div class="image-area">
+                                <img src={photoSrc} loading="lazy" alt={photo.description || album.name} />
+                            </div>
+                            <div class="text-area">
+                                <div class="text-inner">
+                                    <div class="text-header">
+                                        <span class="album-name">{album.name}</span>
+                                        <span class="photo-meta">{photo.width} × {photo.height}</span>
+                                    </div>
+                                    {photo.description && (
+                                        <p class="photo-desc">{photo.description}</p>
+                                    )}
+                                </div>
+                            </div>
+                        </section>
+                    );
+                })}
+            </>
+        ))}
+
+        <section class="snap-section footer-section">
+            <p>The End</p>
+        </section>
+
+    </main>
+
+    <script>
+        const menuBtn = document.getElementById('menu-btn');
+        const overlay = document.getElementById('menu-overlay');
+        const closeMenuBtn = document.getElementById('close-menu');
+        const menuLinks = document.querySelectorAll('.menu-link');
+
+        function toggleMenu() {
+            if (!overlay) return;
+            overlay.classList.toggle('active');
+            
+            // 切换时禁用/启用背景滚动 (可选优化)
+            if (overlay.classList.contains('active')) {
+                // 这里我们不需要禁用 body scroll，因为 snap-container 才是滚动的那个
+                // 但如果想更严谨，可以阻止底层事件
+            }
+        }
+
+        menuBtn?.addEventListener('click', toggleMenu);
+        closeMenuBtn?.addEventListener('click', toggleMenu);
+
+        menuLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                // @ts-ignore
+                const targetId = e.currentTarget.dataset.goto;
+                const targetElement = document.getElementById(targetId);
+                
+                if (targetElement) {
+                    overlay?.classList.remove('active');
+                    targetElement.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+
+    <style>
+        /* ================= 全局配置 ================= */
+        :root {
+            --bg-color: #050505; /* 比纯黑稍微浅一点点，更有质感 */
+            --text-main: #e4e4e7;
+            --text-sub: #71717a;
+            --accent: #f97316;
+            --panel-bg: rgba(5, 5, 5, 0.95);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden; /* 禁用body滚动 */
+        }
+
+        button { background: none; border: none; cursor: pointer; color: inherit; }
+
+        /* ================= 滚动容器 (Scroll Snap) ================= */
+        .snap-container {
+            height: 100dvh;
+            width: 100vw;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+            -ms-overflow-style: none; scrollbar-width: none;
+        }
+        .snap-container::-webkit-scrollbar { display: none; }
+
+        .snap-section {
+            height: 100dvh;
+            width: 100vw;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background-color: var(--bg-color);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+        }
+
+        /* ================= 导航菜单 (核心修改部分) ================= */
+        .nav-btn {
+            position: fixed; top: 24px; right: 24px; z-index: 100;
+            padding: 12px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            backdrop-filter: blur(8px);
+            color: white;
+            transition: background 0.3s;
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.1); }
+
+        /* 菜单遮罩层：本身可以滚动 */
+        .menu-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 90;
+            background: rgba(0,0,0,0.96); /* 背景更深一点 */
+            backdrop-filter: blur(20px);
+            
+            /* 关键：允许内容溢出时滚动 */
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch; /* iOS 平滑滚动 */
+            
+            /* 隐藏菜单滚动条 */
+            -ms-overflow-style: none; scrollbar-width: none;
+
+            /* 动画初始状态 */
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        .menu-overlay::-webkit-scrollbar { display: none; }
+
+        .menu-overlay.active { opacity: 1; pointer-events: auto; }
+
+        /* 菜单滚动包裹层：保证内容少时居中，多时撑开 */
+        .menu-scroll-wrapper {
+            min-height: 100%;
+            width: 100%;
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: center; /* 水平居中 */
+            padding: 80px 20px; /* 加上下边距，防止第一项和最后一项贴边 */
+        }
+
+        .menu-content {
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .menu-label {
+            color: var(--text-sub);
+            font-family: monospace;
+            font-size: 12px;
+            letter-spacing: 0.3em;
+            margin-bottom: 40px;
+        }
+        
+        .menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .menu-link {
+            font-size: clamp(1.5rem, 5vw, 2.5rem); /* 响应式字体 */
+            font-weight: 200;
+            color: #71717a;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+        .menu-link:hover {
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .menu-num {
+            font-size: 12px;
+            color: var(--accent);
+            vertical-align: top;
+            opacity: 0;
+            transition: opacity 0.3s;
+            margin-left: 4px;
+        }
+        .menu-link:hover .menu-num { opacity: 1; }
+
+        .close-btn {
+            margin-top: 60px;
+            color: var(--text-sub);
+            transition: color 0.3s;
+            padding: 10px;
+        }
+        .close-btn:hover { color: white; }
+
+        /* ================= 页面：Intro ================= */
+        .intro-section {
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background-color: #0a0a0a;
+        }
+        .intro-content h1 {
+            font-size: clamp(3rem, 12vw, 6rem); /* 巨大字体 */
+            font-weight: 100; /* 极细 */
+            letter-spacing: 0.1em;
+            margin-bottom: 24px;
+            line-height: 1;
+        }
+        .intro-content p {
+            color: var(--text-sub);
+            font-family: monospace;
+            font-size: 14px;
+            letter-spacing: 0.1em;
+            opacity: 0.8;
+        }
+        .scroll-indicator {
+            position: absolute; bottom: 40px; color: #3f3f46;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-10px);}
+            60% {transform: translateY(-5px);}
+        }
+
+        /* ================= 页面：Cover (章节封面) ================= */
+        .cover-section { align-items: center; justify-content: center; }
+        .bg-layer { position: absolute; inset: 0; z-index: 0; }
+        .bg-img {
+            width: 100%; height: 100%; object-fit: contain; opacity: 0.5;
+            filter: grayscale(20%); /* 轻微去色，增加高级感 */
+        }
+        .bg-overlay {
+            position: absolute; inset: 0;
+            background: radial-gradient(circle, transparent 0%, var(--bg-color) 100%);
+        }
+        .text-layer { relative; z-index: 10; text-align: center; padding: 24px; mix-blend-mode: screen; }
+        .chapter-label {
+            display: block; color: var(--accent); font-weight: bold;
+            font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 12px;
+        }
+        .chapter-title {
+            font-size: clamp(3rem, 10vw, 6rem); font-weight: 100;
+            letter-spacing: -0.02em; margin-bottom: 24px;
+        }
+        .chapter-desc {
+            color: #d4d4d8; max-width: 400px; margin: 0 auto;
+            border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;
+            font-weight: 300; line-height: 1.6; font-size: 14px;
+        }
+
+        /* ================= 页面：Photo Layout ================= */
+        .photo-layout { flex-direction: column; }
+        
+        .image-area {
+            flex: 1; min-height: 0; width: 100%;
+            position: relative; display: flex; align-items: center; justify-content: center;
+            padding: 16px;
+        }
+        .image-area img {
+            max-width: 100%; max-height: 100%; width: auto; height: auto;
+            object-fit: contain; display: block;
+            box-shadow: 0 20px 50px -10px rgba(0,0,0,0.5); /* 给图片加一点阴影 */
+        }
+
+        .text-area {
+            flex: none; width: 100%;
+            background: linear-gradient(to top, var(--bg-color), rgba(5,5,5,0.9), transparent);
+            padding: 16px 24px 40px; z-index: 20;
+        }
+
+        .text-inner { max-width: 900px; margin: 0 auto; }
+        .text-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; }
+        .album-name { font-size: 1rem; font-weight: 400; color: white; }
+        .photo-meta { font-family: monospace; font-size: 12px; color: #52525b; display: none; }
+        .photo-desc { font-size: 14px; color: var(--text-sub); font-weight: 300; line-height: 1.5; }
+
+        @media (min-width: 768px) {
+            .layout-portrait { flex-direction: row; }
+            .layout-portrait .image-area { padding: 40px; background-color: var(--bg-color); }
+            .layout-portrait .text-area {
+                width: 380px; height: 100%; background: var(--panel-bg);
+                border-left: 1px solid rgba(255,255,255,0.05);
+                display: flex; flex-direction: column; justify-content: center; padding: 48px;
+            }
+            .layout-landscape .text-area {
+                position: absolute; bottom: 0; left: 0; right: 0; padding-bottom: 48px;
+            }
+            .photo-meta { display: block; }
+            .album-name { color: var(--accent); font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; }
+            .photo-desc { font-size: 15px; color: #d4d4d8; }
+        }
+
+        .footer-section { align-items: center; justify-content: center; background-color: #0a0a0a; }
+        .footer-section p {
+            font-family: monospace; font-size: 12px; letter-spacing: 0.2em;
+            color: #3f3f46; text-transform: uppercase;
+        }
+    </style>
+  </body>
 </html>

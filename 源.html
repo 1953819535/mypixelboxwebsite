@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Immersive Gallery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { bg: '#000000', text: '#e4e4e7', sub: '#a1a1aa' },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .snap-container {
+            height: 100dvh;
+            width: 100vw;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth; /* 平滑滚动 */
+        }
+        .snap-section {
+            height: 100dvh;
+            width: 100vw;
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            background-color: #000;
+            overflow: hidden;
+            position: relative;
+        }
+        .snap-container::-webkit-scrollbar { display: none; }
+        .snap-container { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 菜单过渡动画 */
+        .menu-hidden { opacity: 0; pointer-events: none; transform: scale(1.05); }
+        .menu-visible { opacity: 1; pointer-events: auto; transform: scale(1); }
+    </style>
+</head>
+<body class="bg-bg text-text antialiased overflow-hidden">
+
+    <!-- 1. 悬浮菜单按钮 -->
+    <button id="menu-btn" class="fixed top-6 right-6 z-50 p-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-full text-white hover:bg-white/10 transition-colors group">
+        <!-- 汉堡图标 -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:scale-110 transition-transform"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </button>
+
+    <!-- 2. 全屏导航遮罩 -->
+    <div id="menu-overlay" class="fixed inset-0 z-40 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center transition-all duration-300 menu-hidden">
+        <p class="text-zinc-500 font-mono text-xs tracking-widest uppercase mb-8">Index</p>
+        <ul id="menu-list" class="space-y-6 text-center">
+            <!-- JS 动态生成列表 -->
+        </ul>
+        <button id="close-menu" class="mt-12 text-zinc-500 hover:text-white transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+        </button>
+    </div>
+
+    <!-- 3. 主内容区域 -->
+    <main id="app" class="snap-container"></main>
+
+    <script>
+        const BASE_URL = "https://images.wangdengfeng.top";
+        const DATA = [
+          { "id": "intro", "type": "intro", "name": "MY VISION", "description": "2025 Personal Portfolio" },
+          {
+            "id": "d84694f26911f8250308ea530ca29306",
+            "name": "秋天",
+            "description": "记录秋日的瞬间",
+            "coverPhotoUrl": "/album-covers/1762785306337-904.jpg",
+            "photos": [
+              { "fileID": "/photos/d84694f26911f8250308ea530ca29306/1762785333517-0.jpg", "description": "湘湖 手机拍的 还凑合", "width": 3060, "height": 4080 },
+              { "fileID": "/photos/d84694f26911f8250308ea530ca29306/1762785367128-0.jpg", "description": "浮光跃金 还是鼋头渚", "width": 3883, "height": 5824 }
+            ]
+          },
+          {
+            "id": "def9fa846911f73f02ffbaf1175c3c4f",
+            "name": "建筑",
+            "description": "城市线条",
+            "coverPhotoUrl": "/album-covers/1762785881355-771.jpg",
+            "photos": [
+              { "fileID": "/photos/def9fa846911f73f02ffbaf1175c3c4f/1762785190033-0.jpg", "description": "滕王阁 经典机位", "width": 5566, "height": 3711 }
+            ]
+          },
+          {
+            "id": "d84694f26911f5d20308a5d7769a23e1",
+            "name": "花花草草",
+            "description": "微距世界",
+            "coverPhotoUrl": "/album-covers/1762784718357-828.jpg",
+            "photos": [
+                { "fileID": "/photos/d84694f26911f5d20308a5d7769a23e1/1762784761194-0.jpg", "description": "太子湾的郁金香", "width": 4000, "height": 6000 },
+                { "fileID": "/photos/d84694f26911f5d20308a5d7769a23e1/1762784786472-0.jpg", "description": "花鸟市场", "width": 6000, "height": 4000 }
+            ]
+          }
+        ];
+
+        const getUrl = (path) => `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+        const app = document.getElementById('app');
+        const menuList = document.getElementById('menu-list');
+
+        let html = '';
+
+        DATA.forEach((album, index) => {
+            // 生成唯一锚点ID，用于跳转
+            const anchorId = `section-${album.id}`;
+
+            // --- 生成菜单项 ---
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <button onclick="navigateTo('${anchorId}')" class="text-3xl font-light text-zinc-400 hover:text-white hover:scale-110 transition-all duration-300">
+                    ${album.name} <span class="text-xs align-top text-orange-500 opacity-0 hover:opacity-100">0${index + 1}</span>
+                </button>
+            `;
+            menuList.appendChild(li);
+
+            // --- 渲染页面 ---
+
+            // 1. 开场页
+            if (album.type === 'intro') {
+                html += `
+                <section id="${anchorId}" class="snap-section flex flex-col items-center justify-center p-8 text-center bg-zinc-900">
+                    <h1 class="text-4xl md:text-6xl font-thin tracking-[0.2em] mb-4">${album.name}</h1>
+                    <p class="text-sub font-mono text-sm">${album.description}</p>
+                </section>`;
+                return;
+            }
+
+            // 2. 封面页 (带ID，作为跳转目标)
+            if (album.coverPhotoUrl) {
+                const coverSrc = getUrl(album.coverPhotoUrl);
+                html += `
+                <section id="${anchorId}" class="snap-section relative flex items-center justify-center">
+                    <div class="absolute inset-0 z-0">
+                        <img src="${coverSrc}" class="w-full h-full object-contain opacity-60" alt="Cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40"></div>
+                    </div>
+                    <div class="relative z-10 text-center p-6">
+                        <span class="text-orange-500 font-bold tracking-widest text-xs uppercase mb-2 block">0${index + 1}</span>
+                        <h2 class="text-5xl md:text-7xl font-thin text-white mb-4 tracking-tight shadow-black drop-shadow-lg">${album.name}</h2>
+                        ${album.description ? `<p class="text-zinc-300 max-w-lg mx-auto font-light text-sm md:text-base border-t border-white/20 pt-4 mt-4 inline-block">${album.description}</p>` : ''}
+                    </div>
+                </section>
+                `;
+            } else {
+                // 如果没有封面图，我们就把ID给第一张照片的section，防止跳转失败
+                // (这里简化处理，假设都有封面，或者你需要给第一张照片加ID逻辑)
+            }
+
+            // 3. 照片页
+            if (album.photos) {
+                album.photos.forEach((photo) => {
+                    const src = getUrl(photo.fileID);
+                    const isPortrait = photo.height > photo.width;
+
+                    html += `<section class="snap-section flex flex-col md:flex-row">`;
+                    if (isPortrait) {
+                        html += `
+                            <div class="flex-1 w-full md:h-full min-h-0 relative bg-black flex items-center justify-center p-4 md:p-0">
+                                <img src="${src}" loading="lazy" class="w-full h-full object-contain" alt="">
+                            </div>
+                            <div class="flex-none w-full md:w-[360px] md:h-full bg-zinc-950/90 md:bg-black/90 p-6 md:p-10 flex flex-col justify-center md:border-l border-white/10 z-20">
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-orange-500 text-xs tracking-widest uppercase font-bold">${album.name}</span>
+                                        <span class="text-zinc-600 font-mono text-xs">${photo.width} × ${photo.height}</span>
+                                    </div>
+                                    ${photo.description ? `<p class="text-zinc-300 font-light leading-relaxed text-sm md:text-base">${photo.description}</p>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="flex-1 w-full min-h-0 relative flex items-center justify-center p-4">
+                                <img src="${src}" loading="lazy" class="w-full h-full object-contain" alt="">
+                            </div>
+                            <div class="flex-none w-full bg-gradient-to-t from-black via-black/90 to-transparent pt-4 pb-8 px-6 md:px-12 z-20">
+                                <div class="max-w-4xl mx-auto flex items-end justify-between gap-4">
+                                    <div>
+                                        <h3 class="text-lg font-medium text-white mb-1">${album.name}</h3>
+                                        ${photo.description ? `<p class="text-sub text-sm font-light">${photo.description}</p>` : ''}
+                                    </div>
+                                    <span class="text-zinc-600 font-mono text-xs whitespace-nowrap hidden md:block">${photo.width} × ${photo.height}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    html += `</section>`;
+                });
+            }
+        });
+
+        app.innerHTML = html;
+
+        // --- 导航逻辑 ---
+        const menuBtn = document.getElementById('menu-btn');
+        const overlay = document.getElementById('menu-overlay');
+        const closeMenuBtn = document.getElementById('close-menu');
+
+        function toggleMenu() {
+            const isHidden = overlay.classList.contains('menu-hidden');
+            if (isHidden) {
+                overlay.classList.remove('menu-hidden');
+                overlay.classList.add('menu-visible');
+            } else {
+                overlay.classList.remove('menu-visible');
+                overlay.classList.add('menu-hidden');
+            }
+        }
+
+        // 点击菜单按钮
+        menuBtn.addEventListener('click', toggleMenu);
+        closeMenuBtn.addEventListener('click', toggleMenu);
+
+        // 导航跳转函数
+        window.navigateTo = (elementId) => {
+            toggleMenu(); // 关闭菜单
+            const target = document.getElementById(elementId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
+        };
+
+    </script>
+</body>
+</html>
