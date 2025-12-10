@@ -54,7 +54,7 @@ async function fetchAlbums(): Promise<Album[]> {
 
     // 从真实API获取数据
     const response = await axios.get(
-      `${API_BASE_URL}/api/albums/gallery/local`
+      `${API_BASE_URL}/api/albums/gallery/public`
     );
     const apiData = response.data;
 
