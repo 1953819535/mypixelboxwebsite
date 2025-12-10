@@ -20,14 +20,7 @@ COPY . .
 # 创建必要的目录和文件，设置权限
 RUN mkdir -p /app/dist /app/logs && \
     touch /app/.last_commit && \
-    chmod +x /app/build-and-deploy.sh && \
-    chown -R nextjs:nodejs /app/dist /app/logs /app/.last_commit /app/build-and-deploy.sh
-
-# 创建非root用户并设置权限
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-
-USER nextjs
+    chmod +x /app/build-and-deploy.sh
 
 # 暴露端口
 EXPOSE 4321
