@@ -2,7 +2,7 @@ services:
   website-builder:
     build: .
     volumes:
-      - /srv/apps/mypixelboxwebsite:/srv/apps/mypixelboxwebsite
+      - /srv/apps/mypixelboxwebsite:/app
       - /var/run/docker.sock:/var/run/docker.sock
       - ./logs:/app/logs  # 将容器内的日志目录映射到主机
     environment:
