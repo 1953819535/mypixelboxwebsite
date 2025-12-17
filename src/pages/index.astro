@@ -222,6 +222,16 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
       <section class="snap-section footer-section">
         <p>The End</p>
       </section>
+      <section class="snap-section footer-section">
+        <div class="footer-beian">
+          <a
+            href="https://beian.miit.gov.cn/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="beian-link">浙ICP备2025208482号-2</a
+          >
+        </div>
+      </section>
     </main>
 
     <script>
@@ -695,6 +705,24 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         letter-spacing: 0.2em;
         color: #3f3f46;
         text-transform: uppercase;
+      }
+      
+      .footer-beian {
+        padding: 20px 0;
+      }
+      
+      .beian-link {
+        font-family: monospace;
+        font-size: 12px;
+        letter-spacing: 0.2em;
+        color: #3f3f46;
+        text-transform: uppercase;
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+      
+      .beian-link:hover {
+        color: #a1a1aa;
       }
     </style>
   </body>
