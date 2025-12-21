@@ -4,7 +4,7 @@ import axios from "axios";
 // ----------------------------------------------------------------------
 // 1. 工具函数
 // ----------------------------------------------------------------------
-function getImg(path: string, w: number = 0, q: number = 80) {
+function getImg(path: string, w: number = 0, q: number = 85) {
   if (!path) return "";
   if (path.startsWith("http")) return path;
   const cleanPath = path.replace(/^\//, "");
@@ -15,17 +15,13 @@ function getImg(path: string, w: number = 0, q: number = 80) {
 }
 
 // ----------------------------------------------------------------------
-// 2. 数据获取与类型
+// 2. 数据获取
 // ----------------------------------------------------------------------
 interface Photo {
-  _id: string;
-  albumId: string;
   fileID: string;
   description: string;
-  order: number;
   width: number;
   height: number;
-  isFeatured: boolean;
 }
 
 interface Album {
@@ -34,16 +30,13 @@ interface Album {
   name: string;
   description: string;
   coverPhotoUrl: string;
-  order: number;
 }
 
 async function fetchAlbums(): Promise<Album[]> {
   try {
     const API_BASE_URL = import.meta.env.API_BASE_URL;
     if (!API_BASE_URL) return [];
-    const response = await axios.get(
-      `${API_BASE_URL}/api/albums/gallery/public`
-    );
+    const response = await axios.get(`${API_BASE_URL}/api/albums/gallery/public`);
     if (response.data.code !== 0) throw new Error(response.data.message);
 
     return response.data.data.map((album: any) => ({
@@ -57,433 +50,333 @@ async function fetchAlbums(): Promise<Album[]> {
 }
 
 const albums: Album[] = await fetchAlbums();
-const pageTitle = "WANDER | Some Portfolio";
-const isTestMode = import.meta.env.TEST_MODE === "true";
+const pageTitle = "🎄 Merry Christmas Gallery";
 ---
 
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{pageTitle}</title>
-    {isTestMode && <meta name="test-mode" content="enabled" />}
     
-    <!-- 字体：Playfair Display (艺术标题) + Anonymous Pro (打字机/便签感) -->
+    <!-- 字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
   </head>
+  
   <body>
+    <!-- 背景雪花 -->
+    <div id="snow-container"></div>
     
-    <!-- 1. 桌面背景层 (Tabletop Atmosphere) -->
-    <div class="tabletop-layer">
-        <!-- 纹理噪点 -->
-        <div class="noise-texture"></div>
-        <!-- 暖色光斑 (模拟烛光或壁炉反光) -->
-        <div class="warm-glow glow-1"></div>
-        <div class="warm-glow glow-2"></div>
-    </div>
+    <!-- 顶部灯串 -->
+    <div class="light-rope"></div>
 
-    <!-- 2. 极简导航 -->
-    <button id="menu-btn" class="nav-stamp">
-        <span class="stamp-circle">MENU</span>
-    </button>
+    <header class="hero-header">
+        <h1 class="christmas-title">Merry Christmas</h1>
+        <p class="christmas-subtitle">2025 SPECIAL MOMENTS</p>
+    </header>
 
-    <!-- 菜单 -->
-    <div id="menu-overlay" class="menu-overlay">
-        <div class="menu-paper">
-            <h2 class="menu-title">Collection Index</h2>
-            <ul class="menu-list">
-                {albums.map((album, index) => (
-                    <li>
-                        <button data-goto={`album-header-${index}`} class="menu-link">
-                            <span class="m-idx">No.0{index+1}</span>
-                            <span class="m-name">{album.name}</span>
-                        </button>
-                    </li>
-                ))}
-            </ul>
-            <button id="close-menu">FOLD</button>
-        </div>
-    </div>
-
-    <!-- 3. 散落流主容器 -->
-    <main class="scatter-container">
-        
-        <!-- Intro Card: 像一张放在桌上的邀请函 -->
-        <div class="scatter-item intro-item">
-            <div class="paper-card intro-card">
-                <div class="stamp-mark">WINTER LOG</div>
-                <h1 class="intro-title">Scattered<br>Memories</h1>
-                <p class="intro-text">
-                    A collection of daily fragments,<br>
-                    left on the table of time.
-                </p>
-                <div class="intro-sign">Est. 2025</div>
-            </div>
-        </div>
-
-        {
-          albums.map((album, index) => (
-            <div class="album-group">
-                
-                <!-- Album Title: 像一个章节的分隔页 -->
-                <div id={`album-header-${index}`} class="scatter-item album-header-item">
-                    <div class="album-divider-text">
-                        <span class="seq-no">COLLECTION 0{index + 1}</span>
-                        <h2 class="album-name">{album.name}</h2>
-                        <div class="red-line"></div>
-                        <p class="album-desc">{album.description}</p>
-                    </div>
+    <main class="gallery-wrapper">
+        {albums.map((album, index) => (
+            <article class="album-card">
+                <!-- 专辑标题 -->
+                <div class="album-header">
+                    <h2 class="album-title">
+                        <span class="decoration">❄</span> {album.name}
+                    </h2>
+                    {album.description && <p class="album-desc">{album.description}</p>}
                 </div>
 
-                <!-- Photos: 散落的照片 -->
-                {album.photos.map((photo, pIndex) => {
-                  // 这里的逻辑全靠 CSS nth-child 处理，HTML 结构保持一致
-                  return (
-                    <div class="scatter-item photo-item">
-                        
-                        <!-- 实体照片 (The Physical Photo) -->
-                        <div class="photo-card">
-                            <div class="photo-inner">
-                                <img 
-                                    src={getImg(photo.fileID, 1600)} 
-                                    loading="lazy" 
-                                    alt="Daily Record"
-                                />
-                            </div>
-                            <!-- 胶带装饰 -->
-                            <div class="tape-strip"></div>
-                        </div>
+                <!-- 封面图：现在也有相框了 -->
+                {album.coverPhotoUrl && (
+                    <div class="cover-section">
+                        <!-- 封面相框容器 -->
+                        <div class="vintage-frame-large">
+                            <!-- 核心：CSS 模拟的四个相片角 -->
+                            <div class="corner top-left"></div>
+                            <div class="corner top-right"></div>
+                            <div class="corner bottom-left"></div>
+                            <div class="corner bottom-right"></div>
 
-                        <!-- 便签说明 (The Sticky Note) -->
-                        <div class="note-card">
-                            <div class="note-meta">
-                                <span>DEC 25</span>
-                                <span>#{pIndex + 1}</span>
-                            </div>
-                            {photo.description ? (
-                                <p class="note-text">{photo.description}</p>
-                            ) : (
-                                <p class="note-text empty">Untitled.</p>
-                            )}
-                            <div class="note-tech">
-                                {photo.width} × {photo.height}
-                            </div>
+                            <img 
+                                src={getImg(album.coverPhotoUrl, 1200, 90)} 
+                                alt={album.name}
+                                class="framed-img"
+                            />
                         </div>
-
+                        <div class="ribbon"><span>COVER</span></div>
                     </div>
-                  );
-                })}
-            </div>
-          ))
-        }
+                )}
 
-        <!-- Footer: 最后的卡片 -->
-        <div class="scatter-item footer-item">
-            <div class="paper-card footer-card">
-                <p class="merry-text">Merry Christmas</p>
-                <p class="sub-text">& Happy New Year</p>
-                <div class="divider-small"></div>
-                <a href="https://beian.miit.gov.cn/" target="_blank">浙ICP备2025208482号-2</a>
-            </div>
-        </div>
+                <!-- 照片流 -->
+                <div class="photo-grid">
+                    {album.photos.map((photo) => {
+                        const aspectRatio = photo.width && photo.height ? `${photo.width} / ${photo.height}` : 'auto';
+                        return (
+                            <div class="photo-item">
+                                <div class="polaroid-frame">
+                                    <img 
+                                        src={getImg(photo.fileID, 1200, 85)}
+                                        style={`aspect-ratio: ${aspectRatio}`}
+                                        loading="lazy"
+                                        alt="Christmas Memory"
+                                        class="content-img"
+                                    />
+                                    {photo.description && (
+                                        <div class="caption">
+                                            {photo.description}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </article>
+        ))}
 
+        <footer class="site-footer">
+            <p>Made with ❤️ for the Holidays</p>
+            <p style="font-size: 0.8em; opacity: 0.7;">浙ICP备2025208482号-2</p>
+        </footer>
     </main>
 
     <script>
-        const menuBtn = document.getElementById("menu-btn");
-        const overlay = document.getElementById("menu-overlay");
-        const closeBtn = document.getElementById("close-menu");
-        const links = document.querySelectorAll(".menu-link");
-
-        function toggleMenu() {
-            overlay.classList.toggle("active");
+        function letItSnow() {
+            const container = document.getElementById('snow-container');
+            if(!container) return;
+            const count = 50;
+            for(let i=0; i<count; i++) {
+                const flake = document.createElement('div');
+                flake.className = 'snowflake';
+                flake.innerHTML = '❄';
+                flake.style.left = Math.random() * 100 + '%';
+                flake.style.animationDuration = (Math.random() * 5 + 5) + 's';
+                flake.style.opacity = (Math.random() * 0.7 + 0.3).toString();
+                flake.style.fontSize = (Math.random() * 1.5 + 0.5) + 'em';
+                flake.style.animationDelay = Math.random() * 5 + 's';
+                container.appendChild(flake);
+            }
         }
-
-        menuBtn.addEventListener("click", toggleMenu);
-        closeBtn.addEventListener("click", toggleMenu);
-
-        links.forEach(link => {
-            link.addEventListener("click", (e) => {
-                const targetId = e.currentTarget.dataset.goto;
-                const targetEl = document.getElementById(targetId);
-                if(targetEl){
-                    toggleMenu();
-                    // 稍微偏移一点，留出呼吸感
-                    const y = targetEl.getBoundingClientRect().top + window.scrollY - 100;
-                    window.scrollTo({top: y, behavior: 'smooth'});
-                }
-            })
-        });
+        letItSnow();
     </script>
 
     <style>
-      :root {
-        /* ----- 调色板：冬日桌面 ----- */
-        --bg-table: #0f1c18;    /* 深天鹅绒绿 */
-        --paper-white: #f2f0e9; /* 暖调相纸白 */
-        --note-yellow: #fffdf5; /* 便签纸 */
-        --ink-black: #222222;
-        --ink-red: #a83232;     /* 像印泥一样的红 */
-        --shadow-deep: rgba(0,0,0,0.4);
-        
-        --font-serif: 'Playfair Display', serif;
-        --font-type: 'Anonymous Pro', monospace;
-      }
+        :root {
+            /* 圣诞配色 */
+            --bg-gradient: linear-gradient(135deg, #1a472a 0%, #0d2b1a 100%);
+            --card-bg: #fffbf0;      
+            --xmas-red: #c0392b;     
+            --xmas-gold: #f1c40f;    
+            --text-dark: #2c3e50;
+            
+            --font-title: 'Mountains of Christmas', cursive;
+            --font-body: 'Quicksand', sans-serif;
+        }
 
-      * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-      body {
-        background-color: var(--bg-table);
-        color: var(--ink-black);
-        font-family: var(--font-type);
-        overflow-x: hidden;
-      }
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-dark);
+            font-family: var(--font-body);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 50px;
+        }
 
-      /* --- 1. 桌面氛围 (Background) --- */
-      .tabletop-layer { position: fixed; inset: 0; z-index: -1; overflow: hidden; }
-      .noise-texture {
-        position: absolute; inset: 0; opacity: 0.06;
-        background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="n"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23n)"/%3E%3C/svg%3E');
-      }
-      .warm-glow {
-        position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.3;
-        animation: glowPulse 8s infinite alternate;
-      }
-      .glow-1 { width: 60vw; height: 60vw; background: #5e4b35; top: -20%; left: -10%; }
-      .glow-2 { width: 50vw; height: 50vw; background: #2f4538; bottom: -10%; right: -10%; animation-delay: -4s; }
-      @keyframes glowPulse { 0% { opacity: 0.2; transform: scale(1); } 100% { opacity: 0.4; transform: scale(1.1); } }
+        /* --- 雪花 --- */
+        #snow-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1;
+        }
+        .snowflake {
+            position: absolute; top: -50px; color: rgba(255,255,255,0.8);
+            animation: fall linear infinite;
+        }
+        @keyframes fall {
+            to { transform: translateY(110vh) rotate(360deg); }
+        }
 
-      /* --- 2. 导航 (Stamp Style) --- */
-      .nav-stamp {
-        position: fixed; top: 30px; right: 30px; z-index: 100;
-        background: none; border: none; cursor: pointer;
-        transition: transform 0.2s;
-      }
-      .nav-stamp:hover { transform: rotate(15deg); }
-      .stamp-circle {
-        display: flex; align-items: center; justify-content: center;
-        width: 50px; height: 50px; border-radius: 50%;
-        border: 2px dashed var(--paper-white);
-        color: var(--paper-white); font-family: var(--font-type); font-size: 10px;
-        backdrop-filter: blur(5px);
-      }
+        /* --- 顶部彩灯 --- */
+        .light-rope {
+            text-align: center; white-space: nowrap; overflow: hidden;
+            position: absolute; z-index: 10; margin: -15px 0 0 0;
+            padding: 0; width: 100%; height: 50px; border-bottom: 2px solid #222;
+        }
+        .light-rope::after {
+            content: ''; display: block; width: 100%; height: 20px;
+            box-shadow: 
+                20px 15px 15px 2px #f00, 60px 15px 15px 2px #0f0, 
+                100px 15px 15px 2px #ff0, 140px 15px 15px 2px #00f,
+                180px 15px 15px 2px #f00, 220px 15px 15px 2px #0f0, 
+                260px 15px 15px 2px #ff0, 300px 15px 15px 2px #00f,
+                340px 15px 15px 2px #f00, 380px 15px 15px 2px #0f0, 
+                420px 15px 15px 2px #ff0, 460px 15px 15px 2px #00f,
+                500px 15px 15px 2px #f00, 540px 15px 15px 2px #0f0,
+                580px 15px 15px 2px #ff0, 620px 15px 15px 2px #00f,
+                660px 15px 15px 2px #f00, 700px 15px 15px 2px #0f0,
+                740px 15px 15px 2px #ff0, 780px 15px 15px 2px #00f,
+                820px 15px 15px 2px #f00, 860px 15px 15px 2px #0f0,
+                900px 15px 15px 2px #ff0, 940px 15px 15px 2px #00f,
+                980px 15px 15px 2px #f00, 1020px 15px 15px 2px #0f0,
+                1060px 15px 15px 2px #ff0, 1100px 15px 15px 2px #00f,
+                1140px 15px 15px 2px #f00, 1180px 15px 15px 2px #0f0,
+                1220px 15px 15px 2px #ff0, 1260px 15px 15px 2px #00f;
+            border-radius: 50%; animation: flash 2s infinite alternate;
+        }
+        @keyframes flash { from { opacity: 0.5; } to { opacity: 1; } }
 
-      /* 菜单覆盖层 */
-      .menu-overlay {
-        position: fixed; inset: 0; z-index: 90;
-        background: rgba(15, 28, 24, 0.95);
-        display: flex; align-items: center; justify-content: center;
-        opacity: 0; pointer-events: none; transition: opacity 0.4s;
-      }
-      .menu-overlay.active { opacity: 1; pointer-events: auto; }
-      
-      .menu-paper {
-        background: var(--paper-white); padding: 60px 40px;
-        max-width: 400px; width: 90%;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        transform: rotate(-2deg); /* 菜单也是歪的 */
-        text-align: center;
-      }
-      .menu-title { font-family: var(--font-serif); font-size: 2rem; margin-bottom: 30px; color: var(--ink-black); }
-      .menu-list { list-style: none; margin-bottom: 40px; display: flex; flex-direction: column; gap: 15px; }
-      .menu-link {
-        background: none; border: none; cursor: pointer; display: block; width: 100%;
-        font-family: var(--font-type); font-size: 1.2rem; color: #555; border-bottom: 1px dotted #ccc;
-        padding: 5px 0; text-align: left; display: flex; justify-content: space-between;
-      }
-      .menu-link:hover { color: var(--ink-red); }
-      .m-idx { font-size: 10px; opacity: 0.6; }
-      #close-menu { background: var(--ink-black); color: #fff; border: none; padding: 10px 30px; cursor: pointer; font-family: var(--font-type); }
+        /* --- Header --- */
+        .hero-header {
+            text-align: center; padding: 100px 20px 60px; color: #fff;
+            position: relative; z-index: 2;
+        }
+        .christmas-title {
+            font-family: var(--font-title); font-size: 5rem;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+        .christmas-subtitle {
+            font-size: 1.2rem; letter-spacing: 0.3em; color: var(--xmas-gold); font-weight: 600;
+        }
 
-      /* --- 3. 散落布局核心 (Scatter Engine) --- */
-      .scatter-container {
-        padding: 100px 0 200px 0;
-        width: 100%;
-        max-width: 1400px;
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        align-items: center; /* 默认居中，后面用nth-child打破 */
-        position: relative;
-      }
+        /* --- 主内容区 --- */
+        .gallery-wrapper {
+            max-width: 1000px; margin: 0 auto; padding: 0 20px;
+            position: relative; z-index: 5;
+        }
 
-      .scatter-item {
-        margin-bottom: 80px; /* 基础垂直间距 */
-        position: relative;
-        width: fit-content;
-        max-width: 90vw;
-        transition: transform 0.3s;
-      }
-      
-      /* --- 通用纸张/卡片样式 --- */
-      .paper-card {
-        background: var(--paper-white);
-        padding: 40px;
-        text-align: center;
-        box-shadow: 0 10px 30px var(--shadow-deep);
-      }
-      
-      /* Intro Card */
-      .intro-item { margin-bottom: 150px; }
-      .intro-card {
-        width: 300px; height: 400px;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        transform: rotate(3deg);
-      }
-      .stamp-mark {
-        border: 1px solid var(--ink-black); padding: 5px 10px; font-size: 10px;
-        margin-bottom: 30px; letter-spacing: 0.2em;
-      }
-      .intro-title { font-family: var(--font-serif); font-size: 3rem; margin-bottom: 20px; line-height: 1; }
-      .intro-text { font-size: 12px; line-height: 1.6; color: #666; font-style: italic; }
-      .intro-sign { margin-top: 40px; font-family: var(--font-serif); color: var(--ink-red); }
+        .album-card {
+            background: var(--card-bg);
+            border-radius: 12px; padding: 30px; margin-bottom: 80px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 0 10px rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+        /* 顶部红白条纹 */
+        .album-card::before {
+            content: ''; position: absolute; top: 0; left: 20px; right: 20px; height: 6px;
+            background: repeating-linear-gradient(45deg, var(--xmas-red), var(--xmas-red) 10px, #fff 10px, #fff 20px);
+            border-radius: 0 0 4px 4px;
+        }
 
-      /* Album Header */
-      .album-header-item {
-        margin: 100px 0 50px 0;
-        text-align: center;
-        color: var(--paper-white); /* 只有标题文字直接写在桌面上 */
-        z-index: 10;
-      }
-      .seq-no { font-size: 10px; letter-spacing: 0.3em; opacity: 0.7; display: block; margin-bottom: 10px; }
-      .album-name { font-family: var(--font-serif); font-size: 4rem; margin-bottom: 10px; }
-      .red-line { width: 50px; height: 2px; background: var(--ink-red); margin: 0 auto 20px; }
-      .album-desc { font-size: 12px; opacity: 0.8; max-width: 400px; margin: 0 auto; line-height: 1.5; }
+        .album-header { text-align: center; margin-bottom: 40px; }
+        .album-title {
+            font-family: var(--font-title); font-size: 3rem; color: var(--xmas-red);
+            margin-bottom: 10px;
+        }
+        .album-desc { font-style: italic; color: #666; font-size: 1.1em; }
 
-      /* --- Photo Item (照片+便签) --- */
-      .photo-item {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        align-items: flex-start;
-      }
-
-      /* 实体照片卡 */
-      .photo-card {
-        background: #fff;
-        padding: 15px 15px 40px 15px; /* 底部留白多一点，像拍立得 */
-        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        position: relative;
-        z-index: 2;
-        max-width: 100%;
-      }
-      .photo-inner img {
-        display: block;
-        max-width: 60vw; /* 限制最大宽度，防止撑破屏幕 */
-        height: auto;    /* 高度自适应，保证完整显示 */
-        max-height: 80vh; 
-        object-fit: contain;
-        filter: sepia(10%) contrast(1.05); /* 微弱的复古感 */
-      }
-      
-      /* 胶带 */
-      .tape-strip {
-        position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
-        width: 100px; height: 30px;
-        background: rgba(255,255,255,0.2);
-        backdrop-filter: blur(2px);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        transform: rotate(-2deg);
-      }
-
-      /* 便签说明 */
-      .note-card {
-        background: var(--note-yellow);
-        padding: 20px;
-        width: 200px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        font-size: 12px;
-        line-height: 1.4;
-        position: relative;
-        z-index: 3;
-        color: #444;
-      }
-      .note-meta { border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; color: #999; font-size: 10px; }
-      .note-text { margin-bottom: 15px; min-height: 40px; }
-      .note-text.empty { opacity: 0.5; font-style: italic; }
-      .note-tech { font-size: 9px; color: #aaa; text-align: right; }
-
-      /* --- 核心随机散落逻辑 (CSS Chaos Engine) --- */
-      
-      /* 模式 1: 偏左，照片左歪，便签在右 */
-      .photo-item:nth-child(3n+1) {
-        margin-right: auto; margin-left: 5vw; /* 整体靠左 */
-      }
-      .photo-item:nth-child(3n+1) .photo-card {
-        transform: rotate(-2deg);
-      }
-      .photo-item:nth-child(3n+1) .note-card {
-        margin-top: 50px;
-        transform: rotate(3deg);
-      }
-
-      /* 模式 2: 偏右，照片右歪，便签在左，稍微重叠 */
-      .photo-item:nth-child(3n+2) {
-        margin-left: auto; margin-right: 5vw; /* 整体靠右 */
-        flex-direction: row-reverse; /* 便签在左边 */
-      }
-      .photo-item:nth-child(3n+2) .photo-card {
-        transform: rotate(3deg);
-      }
-      .photo-item:nth-child(3n+2) .note-card {
-        margin-top: 100px;
-        margin-right: -30px; /* 压住照片一点 */
-        transform: rotate(-4deg);
-      }
-
-      /* 模式 3: 居中，照片微歪，便签贴在下面 */
-      .photo-item:nth-child(3n+3) {
-        margin-left: auto; margin-right: auto;
-        flex-direction: column; align-items: center;
-      }
-      .photo-item:nth-child(3n+3) .photo-card {
-        transform: rotate(1deg);
-      }
-      .photo-item:nth-child(3n+3) .note-card {
-        margin-top: -30px; /* 贴在照片下沿 */
-        margin-left: 150px;
-        transform: rotate(2deg);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3); /* 浮起感更强 */
-      }
-
-      /* --- Footer --- */
-      .footer-item { margin-top: 150px; }
-      .footer-card {
-        transform: rotate(-1deg);
-        border: 4px double var(--ink-red); /* 节日感 */
-      }
-      .merry-text { font-family: var(--font-serif); font-size: 2rem; color: var(--ink-red); }
-      .sub-text { font-size: 1rem; color: #666; margin-bottom: 20px; }
-      .divider-small { width: 20px; height: 2px; background: #ccc; margin: 0 auto 20px; }
-      .footer-card a { color: #999; text-decoration: none; font-size: 10px; }
-
-      /* --- 移动端适配 --- */
-      @media (max-width: 768px) {
-        .photo-inner img { max-width: 85vw; }
-        
-        /* 移动端减弱左右偏移，防止溢出 */
-        .photo-item:nth-child(n) {
-          margin-left: auto; margin-right: auto;
-          justify-content: center;
+        /* --- 封面图 (复古相册风格) --- */
+        .cover-section {
+            margin-bottom: 60px;
+            display: flex; justify-content: center;
+            position: relative;
         }
         
-        /* 移动端便签统一放在下面 */
-        .photo-item:nth-child(3n+2) { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+        .vintage-frame-large {
+            background: #fff;
+            padding: 20px; /* 白色边框厚度 */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            transform: rotate(-1.5deg); /* 微微倾斜，显得更自然 */
+            position: relative;
+            width: 100%;
+        }
+
+        /* 相片角效果 (CSS Triangles) */
+        .corner {
+            position: absolute; width: 0; height: 0; z-index: 2;
+            border-style: solid;
+        }
+        /* 左上角 */
+        .corner.top-left {
+            top: 15px; left: 15px;
+            border-width: 20px 20px 0 0;
+            border-color: var(--text-dark) transparent transparent transparent;
+        }
+        /* 右上角 */
+        .corner.top-right {
+            top: 15px; right: 15px;
+            border-width: 0 20px 20px 0;
+            border-color: transparent var(--text-dark) transparent transparent;
+        }
+        /* 左下角 */
+        .corner.bottom-left {
+            bottom: 15px; left: 15px;
+            border-width: 20px 0 0 20px;
+            border-color: transparent transparent transparent var(--text-dark);
+        }
+        /* 右下角 */
+        .corner.bottom-right {
+            bottom: 15px; right: 15px;
+            border-width: 0 0 20px 20px;
+            border-color: transparent transparent var(--text-dark) transparent;
+        }
+
+        .framed-img {
+            display: block; width: 100%; height: auto;
+            border: 1px solid #ddd; /* 图片本身的细边框 */
+        }
+
+        .ribbon {
+            position: absolute; right: -8px; top: -8px; z-index: 3;
+            width: 85px; height: 85px; overflow: hidden;
+        }
+        .ribbon span {
+            position: absolute; display: block; width: 120px; padding: 5px 0;
+            background-color: var(--xmas-red); box-shadow: 0 5px 10px rgba(0,0,0,0.3);
+            color: #fff; font-family: var(--font-body); font-weight: bold;
+            font-size: 10px; text-align: center; text-transform: uppercase;
+            left: -8px; top: 22px; transform: rotate(45deg);
+        }
+
+        /* --- 内页照片 (拍立得风格) --- */
+        .photo-grid { display: flex; flex-direction: column; gap: 40px; }
+        .photo-item { width: 100%; display: flex; justify-content: center; }
+        .polaroid-frame {
+            background: #fff;
+            padding: 12px 12px 45px 12px; /* 底部留白写字 */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            transition: transform 0.3s;
+            max-width: 100%;
+        }
+        .photo-item:nth-child(odd) .polaroid-frame { transform: rotate(1deg); }
+        .photo-item:nth-child(even) .polaroid-frame { transform: rotate(-1deg); }
         
-        .note-card {
-            width: 80%;
-            margin: -20px auto 0 auto !important; /* 统一贴在下方 */
+        .polaroid-frame:hover {
+            transform: rotate(0deg) scale(1.02) !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            z-index: 5;
+        }
+
+        .content-img {
+            display: block; width: 100%; height: auto;
+            max-height: 85vh; object-fit: contain; background: #eee;
         }
         
-        .album-name { font-size: 2.5rem; }
-      }
+        .caption {
+            font-family: var(--font-title); font-size: 1.4rem; color: #444;
+            margin-top: 15px; text-align: center;
+        }
 
+        .site-footer {
+            text-align: center; color: rgba(255,255,255,0.8);
+            margin-top: 50px; font-family: var(--font-body);
+        }
+
+        @media (max-width: 768px) {
+            .christmas-title { font-size: 3.5rem; }
+            .album-card { padding: 15px; }
+            .vintage-frame-large { padding: 10px; transform: rotate(0deg); }
+            /* 手机端相片角稍微小一点 */
+            .corner { border-width: 12px !important; } 
+            .corner.top-left { border-width: 12px 12px 0 0 !important; }
+            .corner.top-right { border-width: 0 12px 12px 0 !important; }
+            .corner.bottom-left { border-width: 12px 0 0 12px !important; }
+            .corner.bottom-right { border-width: 0 0 12px 12px !important; }
+        }
     </style>
   </body>
 </html>
