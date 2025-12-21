@@ -4,7 +4,7 @@ import axios from "axios";
 // ----------------------------------------------------------------------
 // 1. 工具函数
 // ----------------------------------------------------------------------
-function getImg(path: string, w: number = 0, q: number = 85) {
+function getImg(path: string, w: number = 0, q: number = 80) {
   if (!path) return "";
   if (path.startsWith("http")) return path;
   const cleanPath = path.replace(/^\//, "");
@@ -101,7 +101,7 @@ const pageTitle = "🎄 Merry Christmas Gallery";
                             <div class="corner bottom-right"></div>
 
                             <img 
-                                src={getImg(album.coverPhotoUrl, 1200, 90)} 
+                                src={getImg(album.coverPhotoUrl, 1000, 80)} 
                                 alt={album.name}
                                 class="framed-img"
                             />
@@ -118,7 +118,7 @@ const pageTitle = "🎄 Merry Christmas Gallery";
                             <div class="photo-item">
                                 <div class="polaroid-frame">
                                     <img 
-                                        src={getImg(photo.fileID, 1200, 85)}
+                                        src={getImg(photo.fileID, 1000, 80)}
                                         style={`aspect-ratio: ${aspectRatio}`}
                                         loading="lazy"
                                         alt="Christmas Memory"
