@@ -71,874 +71,419 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
     />
     <title>{pageTitle}</title>
     {isTestMode && <meta name="test-mode" content="enabled" />}
-    <!-- 引入艺术字体 -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;0,700;1,400&family=Montserrat:wght@200;400;500&display=swap"
-      rel="stylesheet"
-    />
+    
+    <!-- 字体：Playfair Display (艺术标题) + Anonymous Pro (打字机/便签感) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anonymous+Pro:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   </head>
   <body>
-    <!-- 氛围背景层 -->
-    <div class="ambient-layer">
-      <div class="noise-overlay"></div>
-      <div class="snow-wrapper">
-        <div class="snow-layer layer-1"></div>
-        <div class="snow-layer layer-2"></div>
-        <div class="snow-layer layer-3"></div>
-      </div>
-      <div class="vignette"></div>
+    
+    <!-- 1. 桌面背景层 (Tabletop Atmosphere) -->
+    <div class="tabletop-layer">
+        <!-- 纹理噪点 -->
+        <div class="noise-texture"></div>
+        <!-- 暖色光斑 (模拟烛光或壁炉反光) -->
+        <div class="warm-glow glow-1"></div>
+        <div class="warm-glow glow-2"></div>
     </div>
 
-    <!-- 导航按钮 (极简风格) -->
-    <button id="menu-btn" class="nav-btn">
-      <span class="nav-text">MENU</span>
-      <div class="nav-line"></div>
+    <!-- 2. 极简导航 -->
+    <button id="menu-btn" class="nav-stamp">
+        <span class="stamp-circle">MENU</span>
     </button>
 
-    <!-- 菜单遮罩 -->
+    <!-- 菜单 -->
     <div id="menu-overlay" class="menu-overlay">
-      <!-- 新增滚动视口容器 -->
-      <div class="menu-scroll-view">
-        <div class="menu-content">
-          <div class="menu-decorative-line"></div>
-          <p class="menu-label">THE COLLECTION</p>
-          <ul class="menu-list">
-            <li>
-              <button data-goto="intro" class="menu-link home-link">
-                <span class="link-text">Introduction</span>
-              </button>
-            </li>
-            {
-              albums.map((album, index) => (
-                <li>
-                  <button data-goto={`album-${album.id}`} class="menu-link">
-                    <span class="menu-num">No.{index + 1}</span>
-                    <span class="link-text">{album.name}</span>
-                  </button>
-                </li>
-              ))
-            }
-          </ul>
-          <button id="close-menu" class="close-btn-text">CLOSE</button>
+        <div class="menu-paper">
+            <h2 class="menu-title">Collection Index</h2>
+            <ul class="menu-list">
+                {albums.map((album, index) => (
+                    <li>
+                        <button data-goto={`album-header-${index}`} class="menu-link">
+                            <span class="m-idx">No.0{index+1}</span>
+                            <span class="m-name">{album.name}</span>
+                        </button>
+                    </li>
+                ))}
+            </ul>
+            <button id="close-menu">FOLD</button>
         </div>
-      </div>
     </div>
 
-    <!-- 主内容区 -->
-    <main class="snap-container">
-      <!-- Intro Section -->
-      <section id="intro" class="snap-section intro-section">
-        <div class="intro-frame">
-          <div class="decorative-star">✦</div>
-          <h1 class="main-title">Wander</h1>
-          <p class="sub-title">Winter Portfolio Log</p>
-          <div class="intro-divider"></div>
-          <p class="intro-date">DECEMBER 2025</p>
-          {isTestMode && <div class="test-badge">Debug Mode</div>}
+    <!-- 3. 散落流主容器 -->
+    <main class="scatter-container">
+        
+        <!-- Intro Card: 像一张放在桌上的邀请函 -->
+        <div class="scatter-item intro-item">
+            <div class="paper-card intro-card">
+                <div class="stamp-mark">WINTER LOG</div>
+                <h1 class="intro-title">Scattered<br>Memories</h1>
+                <p class="intro-text">
+                    A collection of daily fragments,<br>
+                    left on the table of time.
+                </p>
+                <div class="intro-sign">Est. 2025</div>
+            </div>
         </div>
-        <div class="scroll-indicator">
-          <span class="scroll-text">SCROLL</span>
-          <div class="scroll-line"></div>
-        </div>
-      </section>
 
-      {
-        albums.map((album, index) => (
-          <>
-            {/* Album Cover Section */}
-            {album.coverPhotoUrl && (
-              <section
-                id={`album-${album.id}`}
-                class="snap-section album-cover"
-              >
-                <div class="glass-panel">
-                  <span class="chapter-tag">Collection 0{index + 1}</span>
-                  <h2 class="album-title">{album.name}</h2>
-                  <div class="gold-divider" />
-                  {album.description && (
-                    <p class="album-desc">{album.description}</p>
-                  )}
-                </div>
-                <div class="album-bg-img">
-                  <img
-                    src={getImg(album.coverPhotoUrl, 1600)}
-                    alt={album.name}
-                    loading="lazy"
-                  />
-                </div>
-              </section>
-            )}
-
-            {/* Photos Section */}
-            {album.photos.map((photo) => {
-              const isPortrait = photo.height > photo.width;
-              return (
-                <section
-                  class={`snap-section photo-frame ${isPortrait ? "frame-portrait" : "frame-landscape"}`}
-                >
-                  <div class="art-mat">
-                    <div class="image-wrapper">
-                      <img
-                        src={getImg(photo.fileID, 1600)}
-                        loading="lazy"
-                        alt={photo.description}
-                      />
-                      {/* 图片上的装饰角标 */}
-                      <div class="corner-decor top-left" />
-                      <div class="corner-decor bottom-right" />
+        {
+          albums.map((album, index) => (
+            <div class="album-group">
+                
+                <!-- Album Title: 像一个章节的分隔页 -->
+                <div id={`album-header-${index}`} class="scatter-item album-header-item">
+                    <div class="album-divider-text">
+                        <span class="seq-no">COLLECTION 0{index + 1}</span>
+                        <h2 class="album-name">{album.name}</h2>
+                        <div class="red-line"></div>
+                        <p class="album-desc">{album.description}</p>
                     </div>
-                  </div>
+                </div>
 
-                  <div class="caption-card">
-                    <div class="caption-content">
-                      <div class="caption-header">
-                        <span class="caption-album">{album.name}</span>
-                        <span class="caption-meta">
-                          {photo.width} × {photo.height}
-                        </span>
-                      </div>
-                      {photo.description && (
-                        <p class="caption-text">{photo.description}</p>
-                      )}
+                <!-- Photos: 散落的照片 -->
+                {album.photos.map((photo, pIndex) => {
+                  // 这里的逻辑全靠 CSS nth-child 处理，HTML 结构保持一致
+                  return (
+                    <div class="scatter-item photo-item">
+                        
+                        <!-- 实体照片 (The Physical Photo) -->
+                        <div class="photo-card">
+                            <div class="photo-inner">
+                                <img 
+                                    src={getImg(photo.fileID, 1600)} 
+                                    loading="lazy" 
+                                    alt="Daily Record"
+                                />
+                            </div>
+                            <!-- 胶带装饰 -->
+                            <div class="tape-strip"></div>
+                        </div>
+
+                        <!-- 便签说明 (The Sticky Note) -->
+                        <div class="note-card">
+                            <div class="note-meta">
+                                <span>DEC 25</span>
+                                <span>#{pIndex + 1}</span>
+                            </div>
+                            {photo.description ? (
+                                <p class="note-text">{photo.description}</p>
+                            ) : (
+                                <p class="note-text empty">Untitled.</p>
+                            )}
+                            <div class="note-tech">
+                                {photo.width} × {photo.height}
+                            </div>
+                        </div>
+
                     </div>
-                  </div>
-                </section>
-              );
-            })}
-          </>
-        ))
-      }
+                  );
+                })}
+            </div>
+          ))
+        }
 
-      <section class="snap-section footer-section">
-        <div class="footer-content">
-          <div class="decorative-star">✦</div>
-          <p>Merry Christmas & Happy New Year</p>
-          <div class="footer-line"></div>
-          <div class="footer-beian">
-            <a
-              href="https://beian.miit.gov.cn/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="beian-link">浙ICP备2025208482号-2</a
-            >
-          </div>
+        <!-- Footer: 最后的卡片 -->
+        <div class="scatter-item footer-item">
+            <div class="paper-card footer-card">
+                <p class="merry-text">Merry Christmas</p>
+                <p class="sub-text">& Happy New Year</p>
+                <div class="divider-small"></div>
+                <a href="https://beian.miit.gov.cn/" target="_blank">浙ICP备2025208482号-2</a>
+            </div>
         </div>
-      </section>
+
     </main>
 
     <script>
-      const menuBtn = document.getElementById("menu-btn");
-      const overlay = document.getElementById("menu-overlay");
-      const closeMenuBtn = document.getElementById("close-menu");
-      const menuLinks = document.querySelectorAll(".menu-link");
+        const menuBtn = document.getElementById("menu-btn");
+        const overlay = document.getElementById("menu-overlay");
+        const closeBtn = document.getElementById("close-menu");
+        const links = document.querySelectorAll(".menu-link");
 
-      function toggleMenu() {
-        overlay?.classList.toggle("active");
-        menuBtn?.classList.toggle("hidden");
-      }
+        function toggleMenu() {
+            overlay.classList.toggle("active");
+        }
 
-      menuBtn?.addEventListener("click", toggleMenu);
-      closeMenuBtn?.addEventListener("click", toggleMenu);
+        menuBtn.addEventListener("click", toggleMenu);
+        closeBtn.addEventListener("click", toggleMenu);
 
-      menuLinks.forEach((link) => {
-        link.addEventListener("click", (e) => {
-          // @ts-ignore
-          const targetId = e.currentTarget.dataset.goto;
-          const targetElement = document.getElementById(targetId);
-          if (targetElement) {
-            overlay?.classList.remove("active");
-            menuBtn?.classList.remove("hidden");
-            targetElement.scrollIntoView({ behavior: "smooth" });
-          }
+        links.forEach(link => {
+            link.addEventListener("click", (e) => {
+                const targetId = e.currentTarget.dataset.goto;
+                const targetEl = document.getElementById(targetId);
+                if(targetEl){
+                    toggleMenu();
+                    // 稍微偏移一点，留出呼吸感
+                    const y = targetEl.getBoundingClientRect().top + window.scrollY - 100;
+                    window.scrollTo({top: y, behavior: 'smooth'});
+                }
+            })
         });
-      });
     </script>
 
     <style>
       :root {
-        /* 圣诞/冬日艺术调色盘 */
-        --bg-deep: #091210; /* 深松林绿 */
-        --bg-panel: rgba(14, 22, 19, 0.75);
-        --text-gold: #d4af37; /* 香槟金 */
-        --text-cream: #eaeaea; /* 米白 */
-        --text-muted: #8f9e99; /* 灰绿 */
-        --border-gold: rgba(212, 175, 55, 0.3);
-
-        --font-serif: "Cormorant Garamond", serif;
-        --font-sans: "Montserrat", sans-serif;
+        /* ----- 调色板：冬日桌面 ----- */
+        --bg-table: #0f1c18;    /* 深天鹅绒绿 */
+        --paper-white: #f2f0e9; /* 暖调相纸白 */
+        --note-yellow: #fffdf5; /* 便签纸 */
+        --ink-black: #222222;
+        --ink-red: #a83232;     /* 像印泥一样的红 */
+        --shadow-deep: rgba(0,0,0,0.4);
+        
+        --font-serif: 'Playfair Display', serif;
+        --font-type: 'Anonymous Pro', monospace;
       }
 
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
 
       body {
-        background-color: var(--bg-deep);
-        color: var(--text-cream);
-        font-family: var(--font-sans);
-        overflow: hidden;
-        -webkit-font-smoothing: antialiased;
-      }
-
-      /* --- 氛围背景层 (Noise & Snow) --- */
-      .ambient-layer {
-        position: fixed;
-        inset: 0;
-        pointer-events: none;
-        z-index: 0;
-      }
-
-      .noise-overlay {
-        position: absolute;
-        inset: 0;
-        opacity: 0.04;
-        background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noise"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noise)" opacity="1"/%3E%3C/svg%3E');
-      }
-
-      .vignette {
-        position: absolute;
-        inset: 0;
-        background: radial-gradient(
-          circle,
-          transparent 40%,
-          rgba(0, 0, 0, 0.6) 100%
-        );
-      }
-
-      /* CSS 飘雪动画 */
-      .snow-wrapper {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-      }
-      .snow-layer {
-        position: absolute;
-        top: -100vh;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-image:
-          radial-gradient(
-            3px 3px at 20% 30%,
-            rgba(255, 255, 255, 0.8) 50%,
-            transparent
-          ),
-          radial-gradient(
-            2px 2px at 40% 70%,
-            rgba(255, 255, 255, 0.7) 50%,
-            transparent
-          ),
-          radial-gradient(
-            4px 4px at 50% 10%,
-            rgba(255, 255, 255, 0.7) 50%,
-            transparent
-          ),
-          radial-gradient(
-            3px 3px at 80% 50%,
-            rgba(255, 255, 255, 0.6) 50%,
-            transparent
-          );
-        background-size: 200px 200px;
-        animation: snowfall linear infinite;
-      }
-      .layer-1 {
-        animation-duration: 15s;
-        opacity: 0.4;
-      }
-      .layer-2 {
-        animation-duration: 10s;
-        background-size: 300px 300px;
-        opacity: 0.3;
-        animation-delay: -5s;
-      }
-      .layer-3 {
-        animation-duration: 25s;
-        background-size: 500px 500px;
-        opacity: 0.1;
-      }
-
-      @keyframes snowfall {
-        0% {
-          transform: translateY(0);
-        }
-        100% {
-          transform: translateY(100vh);
-        }
-      }
-
-      /* --- 布局容器 --- */
-      .snap-container {
-        position: relative;
-        z-index: 10;
-        height: 100dvh;
-        width: 100vw;
-        overflow-y: scroll;
-        scroll-snap-type: y mandatory;
-        scroll-behavior: smooth;
-        scrollbar-width: none;
-      }
-      .snap-container::-webkit-scrollbar {
-        display: none;
-      }
-
-      .snap-section {
-        height: 100dvh;
-        width: 100vw;
-        scroll-snap-align: start;
-        scroll-snap-stop: always;
-        position: relative;
-        overflow: hidden;
-        display: flex;
-      }
-
-      /* --- 导航按钮 --- */
-      .nav-btn {
-        position: fixed;
-        top: 30px;
-        right: 30px;
-        z-index: 100;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 6px;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        opacity: 0.8;
-        transition: opacity 0.3s;
-      }
-      .nav-btn:hover {
-        opacity: 1;
-      }
-      .nav-btn.hidden {
-        opacity: 0;
-        pointer-events: none;
-      }
-
-      .nav-text {
-        font-family: var(--font-sans);
-        font-size: 10px;
-        letter-spacing: 0.2em;
-        color: var(--text-gold);
-      }
-      .nav-line {
-        width: 30px;
-        height: 1px;
-        background: var(--text-cream);
-      }
-
-      /* --- 菜单 --- */
-      /* --- 菜单样式修正 (支持长列表滚动) --- */
-      .menu-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 95;
-        background: rgba(
-          9,
-          18,
-          16,
-          0.98
-        ); /* 稍微加深背景，防止文字重叠看不太清 */
-        backdrop-filter: blur(15px);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.5s ease;
-        /* 移除原本的 flex center，改为由内部容器控制布局 */
-        display: block;
-      }
-
-      .menu-overlay.active {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      /* 新增：滚动视口 */
-      .menu-scroll-view {
-        width: 100%;
-        height: 100%;
-        overflow-y: auto; /* 允许垂直滚动 */
+        background-color: var(--bg-table);
+        color: var(--ink-black);
+        font-family: var(--font-type);
         overflow-x: hidden;
-        display: flex;
-        flex-direction: column;
-        /* 关键：使用 Flex 布局配合子元素的 margin: auto 实现智能居中 */
-
-        /* 隐藏滚动条 (Chrome/Safari) */
-        scrollbar-width: none; /* Firefox */
-        -ms-overflow-style: none; /* IE/Edge */
       }
 
-      .menu-scroll-view::-webkit-scrollbar {
-        display: none;
+      /* --- 1. 桌面氛围 (Background) --- */
+      .tabletop-layer { position: fixed; inset: 0; z-index: -1; overflow: hidden; }
+      .noise-texture {
+        position: absolute; inset: 0; opacity: 0.06;
+        background: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="n"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23n)"/%3E%3C/svg%3E');
+      }
+      .warm-glow {
+        position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.3;
+        animation: glowPulse 8s infinite alternate;
+      }
+      .glow-1 { width: 60vw; height: 60vw; background: #5e4b35; top: -20%; left: -10%; }
+      .glow-2 { width: 50vw; height: 50vw; background: #2f4538; bottom: -10%; right: -10%; animation-delay: -4s; }
+      @keyframes glowPulse { 0% { opacity: 0.2; transform: scale(1); } 100% { opacity: 0.4; transform: scale(1.1); } }
+
+      /* --- 2. 导航 (Stamp Style) --- */
+      .nav-stamp {
+        position: fixed; top: 30px; right: 30px; z-index: 100;
+        background: none; border: none; cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .nav-stamp:hover { transform: rotate(15deg); }
+      .stamp-circle {
+        display: flex; align-items: center; justify-content: center;
+        width: 50px; height: 50px; border-radius: 50%;
+        border: 2px dashed var(--paper-white);
+        color: var(--paper-white); font-family: var(--font-type); font-size: 10px;
+        backdrop-filter: blur(5px);
       }
 
-      /* 内容容器 */
-      .menu-content {
+      /* 菜单覆盖层 */
+      .menu-overlay {
+        position: fixed; inset: 0; z-index: 90;
+        background: rgba(15, 28, 24, 0.95);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.4s;
+      }
+      .menu-overlay.active { opacity: 1; pointer-events: auto; }
+      
+      .menu-paper {
+        background: var(--paper-white); padding: 60px 40px;
+        max-width: 400px; width: 90%;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        transform: rotate(-2deg); /* 菜单也是歪的 */
         text-align: center;
-        width: 100%;
-        max-width: 500px;
-        /* 关键：margin: auto 在 Flex 容器中可以实现垂直居中，
-     当高度溢出时，它会自然转变为顶部对齐并允许滚动 */
-        margin: auto;
-        padding: 80px 20px; /* 增加上下留白，防止滚动到底部太贴边 */
-        position: relative;
       }
-
-      /* 以下保持原有设计风格不变 */
-      .menu-decorative-line {
-        width: 1px;
-        height: 60px;
-        background: linear-gradient(to bottom, transparent, var(--text-gold));
-        margin: 0 auto 20px;
-      }
-
-      .menu-label {
-        font-family: var(--font-sans);
-        font-size: 11px;
-        letter-spacing: 0.3em;
-        color: var(--text-muted);
-        margin-bottom: 40px;
-      }
-
-      .menu-list {
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 24px; /* 稍微增加间距，方便点击 */
-      }
-
+      .menu-title { font-family: var(--font-serif); font-size: 2rem; margin-bottom: 30px; color: var(--ink-black); }
+      .menu-list { list-style: none; margin-bottom: 40px; display: flex; flex-direction: column; gap: 15px; }
       .menu-link {
-        background: none;
-        border: none;
-        color: var(--text-cream);
-        cursor: pointer;
-        font-family: var(--font-serif);
-        font-size: 2rem;
-        font-weight: 300;
-        font-style: italic;
-        transition: all 0.3s ease;
-        position: relative;
-        padding: 5px 20px;
-        line-height: 1.2;
+        background: none; border: none; cursor: pointer; display: block; width: 100%;
+        font-family: var(--font-type); font-size: 1.2rem; color: #555; border-bottom: 1px dotted #ccc;
+        padding: 5px 0; text-align: left; display: flex; justify-content: space-between;
       }
+      .menu-link:hover { color: var(--ink-red); }
+      .m-idx { font-size: 10px; opacity: 0.6; }
+      #close-menu { background: var(--ink-black); color: #fff; border: none; padding: 10px 30px; cursor: pointer; font-family: var(--font-type); }
 
-      .menu-link:hover {
-        color: var(--text-gold);
-        transform: scale(1.05);
-      }
-
-      .menu-num {
-        display: block;
-        font-family: var(--font-sans);
-        font-size: 9px;
-        font-style: normal;
-        color: var(--text-muted);
-        letter-spacing: 0.1em;
-        margin-bottom: 2px;
-      }
-
-      .close-btn-text {
-        margin-top: 60px;
-        background: none;
-        border: 1px solid var(--border-gold);
-        color: var(--text-gold);
-        padding: 12px 36px;
-        font-size: 10px;
-        letter-spacing: 0.2em;
-        cursor: pointer;
-        transition: all 0.3s;
-        text-transform: uppercase;
-      }
-
-      .close-btn-text:hover {
-        background: var(--text-gold);
-        color: var(--bg-deep);
-      }
-
-      /* --- Intro Section --- */
-      .intro-section {
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-      }
-      .intro-frame {
-        border: 1px solid var(--border-gold);
-        padding: 60px 40px;
-        position: relative;
-        max-width: 90vw;
-      }
-      .decorative-star {
-        color: var(--text-gold);
-        font-size: 20px;
-        margin-bottom: 20px;
-      }
-      .main-title {
-        font-family: var(--font-serif);
-        font-size: clamp(3.5rem, 15vw, 8rem);
-        font-weight: 400;
-        color: var(--text-gold);
-        line-height: 0.9;
-        margin-bottom: 10px;
-        text-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
-      }
-      .sub-title {
-        font-family: var(--font-sans);
-        font-weight: 300;
-        font-size: clamp(12px, 3vw, 16px);
-        letter-spacing: 0.3em;
-        text-transform: uppercase;
-      }
-      .intro-divider {
+      /* --- 3. 散落布局核心 (Scatter Engine) --- */
+      .scatter-container {
+        padding: 100px 0 200px 0;
         width: 100%;
-        max-width: 100px;
-        height: 1px;
-        background: var(--border-gold);
-        margin: 30px auto;
-      }
-      .intro-date {
-        font-family: var(--font-serif);
-        font-style: italic;
-        color: var(--text-muted);
-      }
-      .scroll-indicator {
-        position: absolute;
-        bottom: 30px;
+        max-width: 1400px;
+        margin: 0 auto;
         display: flex;
         flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        opacity: 0.5;
-        animation: pulse 3s infinite;
-      }
-      .scroll-text {
-        font-size: 9px;
-        letter-spacing: 0.2em;
-      }
-      .scroll-line {
-        width: 1px;
-        height: 40px;
-        background: var(--text-cream);
-      }
-      @keyframes pulse {
-        0%,
-        100% {
-          opacity: 0.3;
-        }
-        50% {
-          opacity: 0.8;
-        }
-      }
-
-      /* --- Album Cover --- */
-      .album-cover {
+        align-items: center; /* 默认居中，后面用nth-child打破 */
         position: relative;
-        justify-content: center;
-        align-items: center;
-      }
-      .album-bg-img {
-        position: absolute;
-        inset: 0;
-        z-index: 1;
-      }
-      .album-bg-img img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        opacity: 0.6; /* 让背景暗一点 */
-        filter: saturate(0.8) contrast(1.1);
-        transition: transform 10s ease;
-      }
-      /* 缓慢缩放动效 */
-      .album-cover:hover .album-bg-img img {
-        transform: scale(1.05);
       }
 
-      .glass-panel {
+      .scatter-item {
+        margin-bottom: 80px; /* 基础垂直间距 */
+        position: relative;
+        width: fit-content;
+        max-width: 90vw;
+        transition: transform 0.3s;
+      }
+      
+      /* --- 通用纸张/卡片样式 --- */
+      .paper-card {
+        background: var(--paper-white);
+        padding: 40px;
+        text-align: center;
+        box-shadow: 0 10px 30px var(--shadow-deep);
+      }
+      
+      /* Intro Card */
+      .intro-item { margin-bottom: 150px; }
+      .intro-card {
+        width: 300px; height: 400px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transform: rotate(3deg);
+      }
+      .stamp-mark {
+        border: 1px solid var(--ink-black); padding: 5px 10px; font-size: 10px;
+        margin-bottom: 30px; letter-spacing: 0.2em;
+      }
+      .intro-title { font-family: var(--font-serif); font-size: 3rem; margin-bottom: 20px; line-height: 1; }
+      .intro-text { font-size: 12px; line-height: 1.6; color: #666; font-style: italic; }
+      .intro-sign { margin-top: 40px; font-family: var(--font-serif); color: var(--ink-red); }
+
+      /* Album Header */
+      .album-header-item {
+        margin: 100px 0 50px 0;
+        text-align: center;
+        color: var(--paper-white); /* 只有标题文字直接写在桌面上 */
+        z-index: 10;
+      }
+      .seq-no { font-size: 10px; letter-spacing: 0.3em; opacity: 0.7; display: block; margin-bottom: 10px; }
+      .album-name { font-family: var(--font-serif); font-size: 4rem; margin-bottom: 10px; }
+      .red-line { width: 50px; height: 2px; background: var(--ink-red); margin: 0 auto 20px; }
+      .album-desc { font-size: 12px; opacity: 0.8; max-width: 400px; margin: 0 auto; line-height: 1.5; }
+
+      /* --- Photo Item (照片+便签) --- */
+      .photo-item {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: flex-start;
+      }
+
+      /* 实体照片卡 */
+      .photo-card {
+        background: #fff;
+        padding: 15px 15px 40px 15px; /* 底部留白多一点，像拍立得 */
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         position: relative;
         z-index: 2;
-        background: rgba(18, 33, 29, 0.6); /* 毛玻璃深色底 */
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 40px;
-        max-width: 80vw;
-        text-align: center;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-      }
-      .chapter-tag {
-        display: block;
-        font-size: 10px;
-        letter-spacing: 0.2em;
-        color: var(--text-gold);
-        margin-bottom: 15px;
-        text-transform: uppercase;
-      }
-      .album-title {
-        font-family: var(--font-serif);
-        font-size: clamp(2.5rem, 8vw, 4rem);
-        font-style: italic;
-        line-height: 1.1;
-        margin-bottom: 20px;
-      }
-      .gold-divider {
-        width: 40px;
-        height: 2px;
-        background: var(--text-gold);
-        margin: 0 auto 20px;
-      }
-      .album-desc {
-        font-size: 14px;
-        line-height: 1.6;
-        color: #d1d1d1;
-        font-family: var(--font-serif);
-      }
-
-      /* --- Photo Frame Logic --- */
-      .photo-frame {
-        flex-direction: column;
-        background: var(--bg-deep);
-      }
-
-      .art-mat {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        position: relative;
-      }
-
-      .image-wrapper {
-        position: relative;
         max-width: 100%;
-        max-height: 100%;
-        /* 关键：给图片增加阴影和边框，像画廊里的画 */
-        box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8);
       }
-
-      .image-wrapper img {
+      .photo-inner img {
         display: block;
-        max-width: 100%;
-        max-height: calc(100dvh - 160px); /* 留出底部空间 */
-        width: auto;
-        height: auto;
+        max-width: 60vw; /* 限制最大宽度，防止撑破屏幕 */
+        height: auto;    /* 高度自适应，保证完整显示 */
+        max-height: 80vh; 
         object-fit: contain;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        filter: sepia(10%) contrast(1.05); /* 微弱的复古感 */
+      }
+      
+      /* 胶带 */
+      .tape-strip {
+        position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+        width: 100px; height: 30px;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        transform: rotate(-2deg);
       }
 
-      /* 金色边角装饰 */
-      .corner-decor {
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        border-color: var(--text-gold);
-        border-style: solid;
-        opacity: 0.6;
-      }
-      .top-left {
-        top: -10px;
-        left: -10px;
-        border-width: 1px 0 0 1px;
-      }
-      .bottom-right {
-        bottom: -10px;
-        right: -10px;
-        border-width: 0 1px 1px 0;
-      }
-
-      .caption-card {
-        flex: none;
-        width: 100%;
-        padding: 0 20px 40px;
-        z-index: 20;
-      }
-      .caption-content {
-        background: var(--bg-panel);
-        backdrop-filter: blur(8px);
+      /* 便签说明 */
+      .note-card {
+        background: var(--note-yellow);
         padding: 20px;
-        border-top: 1px solid var(--border-gold);
-      }
-      .caption-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding-bottom: 8px;
-      }
-      .caption-album {
-        font-family: var(--font-sans);
-        font-size: 10px;
-        letter-spacing: 0.15em;
-        color: var(--text-gold);
-        text-transform: uppercase;
-      }
-      .caption-meta {
-        font-family: monospace;
-        font-size: 10px;
-        color: var(--text-muted);
-      }
-      .caption-text {
-        font-family: var(--font-serif);
-        font-size: 16px;
-        color: var(--text-cream);
+        width: 200px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        font-size: 12px;
         line-height: 1.4;
-      }
-
-      /* PC Layout Optimization */
-      @media (min-width: 768px) {
-        .intro-frame {
-          padding: 80px 100px;
-        }
-
-        /* Cover 左右布局 */
-        .album-cover {
-          flex-direction: row;
-        }
-        .album-bg-img {
-          width: 50%; /* 只有一半是图片，另一半留白 */
-          left: 50%;
-          opacity: 0.8;
-          mask-image: linear-gradient(to right, transparent, black 20%);
-          -webkit-mask-image: linear-gradient(to right, transparent, black 20%);
-        }
-        .glass-panel {
-          margin-left: -10vw; /* 稍微重叠 */
-          text-align: left;
-          padding: 60px;
-          min-width: 400px;
-        }
-        .gold-divider {
-          margin: 0 0 20px 0;
-        }
-        .album-title {
-          font-size: 5rem;
-        }
-
-        /* Photo Frame 左右布局 (画廊模式) */
-        .frame-portrait {
-          flex-direction: row;
-        }
-        .frame-portrait .art-mat {
-          padding: 60px;
-          background: linear-gradient(90deg, var(--bg-deep) 0%, #0d1a16 100%);
-        }
-        .frame-portrait .caption-card {
-          width: 350px;
-          height: 100%;
-          padding: 0;
-          display: flex;
-          align-items: center;
-          border-left: 1px solid rgba(255, 255, 255, 0.05);
-          background: var(--bg-deep);
-        }
-        .frame-portrait .caption-content {
-          background: transparent;
-          backdrop-filter: none;
-          border-top: none;
-          padding: 40px;
-          width: 100%;
-        }
-
-        /* 横构图 PC 优化 */
-        .frame-landscape {
-          justify-content: center;
-          align-items: center;
-        }
-        .frame-landscape .art-mat {
-          width: 100%;
-          height: 100%;
-          padding-bottom: 120px; /* 给下方文字留位置 */
-        }
-        .frame-landscape .caption-card {
-          position: absolute;
-          bottom: 40px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: auto;
-          min-width: 400px;
-          padding: 0;
-        }
-        .frame-landscape .caption-content {
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-top: 1px solid var(--border-gold);
-        }
-      }
-
-      /* Footer */
-      /* --- Footer 修正 --- */
-      .footer-section {
-        /* 确保继承 snap-section 的 flex 属性，并添加居中规则 */
-        display: flex;
-        justify-content: center; /* 水平居中 */
-        align-items: center; /* 垂直居中 */
-        flex-direction: column; /* 确保主轴方向一致，虽然只有一个子元素 */
-
-        background-color: var(--bg-deep);
-        color: var(--text-muted);
-        text-align: center;
         position: relative;
-        z-index: 20; /* 确保在背景层之上 */
+        z-index: 3;
+        color: #444;
+      }
+      .note-meta { border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; color: #999; font-size: 10px; }
+      .note-text { margin-bottom: 15px; min-height: 40px; }
+      .note-text.empty { opacity: 0.5; font-style: italic; }
+      .note-tech { font-size: 9px; color: #aaa; text-align: right; }
+
+      /* --- 核心随机散落逻辑 (CSS Chaos Engine) --- */
+      
+      /* 模式 1: 偏左，照片左歪，便签在右 */
+      .photo-item:nth-child(3n+1) {
+        margin-right: auto; margin-left: 5vw; /* 整体靠左 */
+      }
+      .photo-item:nth-child(3n+1) .photo-card {
+        transform: rotate(-2deg);
+      }
+      .photo-item:nth-child(3n+1) .note-card {
+        margin-top: 50px;
+        transform: rotate(3deg);
       }
 
-      .footer-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 20px;
-        width: 100%;
-        max-width: 600px; /* 限制宽度，防止在大屏上太散 */
-        padding: 0 20px; /* 防止在小屏上贴边 */
+      /* 模式 2: 偏右，照片右歪，便签在左，稍微重叠 */
+      .photo-item:nth-child(3n+2) {
+        margin-left: auto; margin-right: 5vw; /* 整体靠右 */
+        flex-direction: row-reverse; /* 便签在左边 */
+      }
+      .photo-item:nth-child(3n+2) .photo-card {
+        transform: rotate(3deg);
+      }
+      .photo-item:nth-child(3n+2) .note-card {
+        margin-top: 100px;
+        margin-right: -30px; /* 压住照片一点 */
+        transform: rotate(-4deg);
       }
 
-      /* 之前定义的内部元素样式保持不变 */
-      .footer-line {
-        width: 1px;
-        height: 40px; /* 稍微拉长一点线条，更优雅 */
-        background: linear-gradient(to bottom, var(--text-muted), transparent);
-        opacity: 0.5;
+      /* 模式 3: 居中，照片微歪，便签贴在下面 */
+      .photo-item:nth-child(3n+3) {
+        margin-left: auto; margin-right: auto;
+        flex-direction: column; align-items: center;
+      }
+      .photo-item:nth-child(3n+3) .photo-card {
+        transform: rotate(1deg);
+      }
+      .photo-item:nth-child(3n+3) .note-card {
+        margin-top: -30px; /* 贴在照片下沿 */
+        margin-left: 150px;
+        transform: rotate(2deg);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3); /* 浮起感更强 */
       }
 
-      .decorative-star {
-        color: var(--text-gold);
-        font-size: 18px;
-        animation: twinkle 3s infinite ease-in-out;
+      /* --- Footer --- */
+      .footer-item { margin-top: 150px; }
+      .footer-card {
+        transform: rotate(-1deg);
+        border: 4px double var(--ink-red); /* 节日感 */
       }
+      .merry-text { font-family: var(--font-serif); font-size: 2rem; color: var(--ink-red); }
+      .sub-text { font-size: 1rem; color: #666; margin-bottom: 20px; }
+      .divider-small { width: 20px; height: 2px; background: #ccc; margin: 0 auto 20px; }
+      .footer-card a { color: #999; text-decoration: none; font-size: 10px; }
 
-      @keyframes twinkle {
-        0%,
-        100% {
-          opacity: 0.4;
-          transform: scale(0.8);
+      /* --- 移动端适配 --- */
+      @media (max-width: 768px) {
+        .photo-inner img { max-width: 85vw; }
+        
+        /* 移动端减弱左右偏移，防止溢出 */
+        .photo-item:nth-child(n) {
+          margin-left: auto; margin-right: auto;
+          justify-content: center;
         }
-        50% {
-          opacity: 1;
-          transform: scale(1.2);
+        
+        /* 移动端便签统一放在下面 */
+        .photo-item:nth-child(3n+2) { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+        
+        .note-card {
+            width: 80%;
+            margin: -20px auto 0 auto !important; /* 统一贴在下方 */
         }
+        
+        .album-name { font-size: 2.5rem; }
       }
 
-      .beian-link {
-        color: var(--text-muted);
-        text-decoration: none;
-        font-family: var(--font-sans);
-        font-size: 10px;
-        letter-spacing: 0.2em;
-        opacity: 0.6;
-        transition: all 0.3s;
-        border-bottom: 1px solid transparent;
-      }
-
-      .beian-link:hover {
-        color: var(--text-gold);
-        opacity: 1;
-        border-bottom-color: var(--text-gold);
-      }
     </style>
   </body>
 </html>
