@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // ----------------------------------------------------------------------
-// 1. 工具函数
+// 工具与数据
 // ----------------------------------------------------------------------
 function getImg(path: string, w: number = 0, q: number = 80) {
   if (!path) return "";
@@ -14,23 +14,8 @@ function getImg(path: string, w: number = 0, q: number = 80) {
   return `${imageUrl}/cdn-cgi/image/width=${w},quality=${q},format=auto/${cleanPath}`;
 }
 
-// ----------------------------------------------------------------------
-// 2. 数据获取
-// ----------------------------------------------------------------------
-interface Photo {
-  fileID: string;
-  description: string;
-  width: number;
-  height: number;
-}
-
-interface Album {
-  id: string;
-  photos: Photo[];
-  name: string;
-  description: string;
-  coverPhotoUrl: string;
-}
+interface Photo { fileID: string; description: string; width: number; height: number; }
+interface Album { id: string; photos: Photo[]; name: string; description: string; coverPhotoUrl: string; }
 
 async function fetchAlbums(): Promise<Album[]> {
   try {
@@ -38,344 +23,407 @@ async function fetchAlbums(): Promise<Album[]> {
     if (!API_BASE_URL) return [];
     const response = await axios.get(`${API_BASE_URL}/api/albums/gallery/public`);
     if (response.data.code !== 0) throw new Error(response.data.message);
-
-    return response.data.data.map((album: any) => ({
-      ...album,
-      photos: album.photos || [],
-    }));
-  } catch (err: any) {
-    console.error("Data Fetch Error:", err.message);
-    return [];
-  }
+    return response.data.data.map((album: any) => ({ ...album, photos: album.photos || [] }));
+  } catch (err: any) { return []; }
 }
 
 const albums: Album[] = await fetchAlbums();
-const pageTitle = "🎄 Merry Christmas Gallery";
+const pageTitle = "ARCHIVE . 2025";
 ---
 
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{pageTitle}</title>
-    
-    <!-- 字体 -->
+    <!-- 字体：Cinzel (装饰), Lato (正文), Space Mono (数据) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@400;700&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Lato:wght@300;400;700&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
   </head>
   
   <body>
-    <!-- 背景雪花 -->
-    <div id="snow-container"></div>
-    
-    <!-- 顶部灯串 -->
-    <div class="light-rope"></div>
+    <!-- 背景纹理 -->
+    <div class="bg-texture"></div>
 
-    <header class="hero-header">
-        <h1 class="christmas-title">Merry Christmas</h1>
-        <p class="christmas-subtitle">2025 SPECIAL MOMENTS</p>
+    <!-- 
+      === 新增：移动端/全局顶部导航栏 (Sticky) ===
+      包含 Logo 和 菜单触发按钮 
+    -->
+    <nav class="navbar-fixed" id="navbar">
+        <div class="nav-brand">MOMENTS.</div>
+        <button class="menu-trigger" id="menu-btn" aria-label="Menu">
+            <span class="menu-text">MENU</span>
+            <div class="hamburger">
+                <span></span>
+                <span></span>
+            </div>
+        </button>
+    </nav>
+
+    <!-- 
+      === 新增：全屏导航菜单 (Overlay) ===
+    -->
+    <div class="fullscreen-menu" id="fs-menu">
+        <div class="menu-inner">
+            <h3 class="menu-header">INDEX</h3>
+            <ul class="menu-list">
+                {albums.map((album, idx) => (
+                    <li>
+                        <a href={`#album-${idx}`} class="menu-link" data-close-menu>
+                            <span class="idx">0{idx + 1}</span>
+                            <span class="label">{album.name}</span>
+                        </a>
+                    </li>
+                ))}
+            </ul>
+            <div class="menu-footer">
+                <p>2025 VISUAL ARCHIVE</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 顶部 Hero 区域 -->
+    <header class="archive-header">
+        <div class="header-inner">
+            <div class="top-bar">
+                <span class="mono-tag">EST. 2025</span>
+            </div>
+            <h1 class="main-title">MOMENTS</h1>
+            <p class="sub-title">Collection of Time & Light</p>
+            <div class="scroll-line"></div>
+        </div>
     </header>
 
-    <main class="gallery-wrapper">
-        {albums.map((album, index) => (
-            <article class="album-card">
-                <!-- 专辑标题 -->
-                <div class="album-header">
-                    <h2 class="album-title">
-                        <span class="decoration">❄</span> {album.name}
-                    </h2>
-                    {album.description && <p class="album-desc">{album.description}</p>}
-                </div>
-
-                <!-- 封面图：现在也有相框了 -->
-                {album.coverPhotoUrl && (
-                    <div class="cover-section">
-                        <!-- 封面相框容器 -->
-                        <div class="vintage-frame-large">
-                            <!-- 核心：CSS 模拟的四个相片角 -->
-                            <div class="corner top-left"></div>
-                            <div class="corner top-right"></div>
-                            <div class="corner bottom-left"></div>
-                            <div class="corner bottom-right"></div>
-
-                            <img 
-                                src={getImg(album.coverPhotoUrl, 1000, 80)} 
-                                alt={album.name}
-                                class="framed-img"
-                            />
+    <main class="content-wrapper">
+        {albums.map((album, idx) => (
+            <article class="album-container" id={`album-${idx}`}>
+                
+                <!-- 左侧信息区 (Sticky on Desktop) -->
+                <aside class="album-info-col">
+                    <div class="sticky-wrapper">
+                        <div class="album-meta">
+                            <span class="album-id">NO. {String(idx + 1).padStart(2, '0')}</span>
+                            <span class="album-year">2025 REC</span>
                         </div>
-                        <div class="ribbon"><span>COVER</span></div>
+                        <h2 class="album-name">{album.name}</h2>
+                        <div class="separator-line"></div>
+                        {album.description && <p class="album-desc">{album.description}</p>}
+                        
+                        <div class="tech-stats">
+                            <div><span>items</span> {album.photos.length}</div>
+                        </div>
                     </div>
-                )}
+                </aside>
 
-                <!-- 照片流 -->
-                <div class="photo-grid">
-                    {album.photos.map((photo) => {
-                        const aspectRatio = photo.width && photo.height ? `${photo.width} / ${photo.height}` : 'auto';
-                        return (
-                            <div class="photo-item">
-                                <div class="polaroid-frame">
+                <!-- 右侧图片画廊 -->
+                <div class="album-gallery-col">
+                    {/* 封面 */}
+                    {album.coverPhotoUrl && (
+                        <div class="gallery-item cover-item">
+                            <div class="img-frame">
+                                <img 
+                                    src={getImg(album.coverPhotoUrl, 1600, 90)} 
+                                    alt={album.name}
+                                    class="photo-img"
+                                />
+                                <div class="overlay-badge">COVER</div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 瀑布流/卡片流 */}
+                    <div class="masonry-grid">
+                        {album.photos.map((photo) => (
+                            <div class="gallery-item">
+                                <div class="img-frame">
                                     <img 
-                                        src={getImg(photo.fileID, 1000, 80)}
-                                        style={`aspect-ratio: ${aspectRatio}`}
+                                        src={getImg(photo.fileID, 1000, 85)}
                                         loading="lazy"
-                                        alt="Christmas Memory"
-                                        class="content-img"
+                                        alt="Archive Memory"
+                                        class="photo-img"
                                     />
                                     {photo.description && (
-                                        <div class="caption">
-                                            {photo.description}
+                                        <div class="img-caption-glass">
+                                            <p>{photo.description}</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                        );
-                    })}
+                        ))}
+                    </div>
                 </div>
             </article>
         ))}
-
-        <footer class="site-footer">
-            <p>Made with ❤️ for the Holidays</p>
-            <p style="font-size: 0.8em; opacity: 0.7;">浙ICP备2025208482号-2</p>
-        </footer>
     </main>
 
+    <footer class="archive-footer">
+        <div class="footer-inner">
+            <p>END OF ARCHIVE</p>
+            <p class="copyright">DESIGNED FOR MEMORIES &copy; 2025</p>
+        </div>
+    </footer>
+
+    <!-- 交互脚本 -->
     <script>
-        function letItSnow() {
-            const container = document.getElementById('snow-container');
-            if(!container) return;
-            const count = 50;
-            for(let i=0; i<count; i++) {
-                const flake = document.createElement('div');
-                flake.className = 'snowflake';
-                flake.innerHTML = '❄';
-                flake.style.left = Math.random() * 100 + '%';
-                flake.style.animationDuration = (Math.random() * 5 + 5) + 's';
-                flake.style.opacity = (Math.random() * 0.7 + 0.3).toString();
-                flake.style.fontSize = (Math.random() * 1.5 + 0.5) + 'em';
-                flake.style.animationDelay = Math.random() * 5 + 's';
-                container.appendChild(flake);
-            }
+        const menuBtn = document.getElementById('menu-btn');
+        const fsMenu = document.getElementById('fs-menu');
+        const navbar = document.getElementById('navbar');
+        const menuLinks = document.querySelectorAll('[data-close-menu]');
+
+        // 1. 菜单切换
+        if(menuBtn && fsMenu) {
+            menuBtn.addEventListener('click', () => {
+                const isOpen = fsMenu.classList.contains('active');
+                if(isOpen) {
+                    fsMenu.classList.remove('active');
+                    menuBtn.classList.remove('active');
+                    document.body.style.overflow = ''; // 恢复滚动
+                } else {
+                    fsMenu.classList.add('active');
+                    menuBtn.classList.add('active');
+                    document.body.style.overflow = 'hidden'; // 禁止背景滚动
+                }
+            });
         }
-        letItSnow();
+
+        // 2. 点击链接自动关闭菜单
+        menuLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                fsMenu?.classList.remove('active');
+                menuBtn?.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+        });
+
+        // 3. 滚动监听：导航栏磨砂效果 + 隐藏/显示
+        let lastScrollY = window.scrollY;
+        window.addEventListener('scroll', () => {
+            if(!navbar) return;
+            
+            // 滚动超过50px才显示背景
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
     </script>
 
     <style>
         :root {
-            /* 圣诞配色 */
-            --bg-gradient: linear-gradient(135deg, #1a472a 0%, #0d2b1a 100%);
-            --card-bg: #fffbf0;      
-            --xmas-red: #c0392b;     
-            --xmas-gold: #f1c40f;    
-            --text-dark: #2c3e50;
+            --bg-root: #0b0b0b;
+            --text-primary: #e5e5e5;
+            --text-secondary: #888888;
+            --accent-gold: #c5a47e;
+            --border-color: rgba(255, 255, 255, 0.1);
             
-            --font-title: 'Mountains of Christmas', cursive;
-            --font-body: 'Quicksand', sans-serif;
+            --font-display: 'Cinzel', serif;
+            --font-body: 'Lato', sans-serif;
+            --font-mono: 'Space Mono', monospace;
+            
+            --nav-height: 70px;
+            --container-width: 1400px;
         }
+
+        html { scroll-behavior: smooth; }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background: var(--bg-gradient);
-            color: var(--text-dark);
+            background-color: var(--bg-root);
+            color: var(--text-primary);
             font-family: var(--font-body);
-            min-height: 100vh;
             overflow-x: hidden;
-            padding-bottom: 50px;
+            line-height: 1.6;
         }
 
-        /* --- 雪花 --- */
-        #snow-container {
+        .bg-texture {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 1;
-        }
-        .snowflake {
-            position: absolute; top: -50px; color: rgba(255,255,255,0.8);
-            animation: fall linear infinite;
-        }
-        @keyframes fall {
-            to { transform: translateY(110vh) rotate(360deg); }
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='0.03' filter='url(%23noise)'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 0;
         }
 
-        /* --- 顶部彩灯 --- */
-        .light-rope {
-            text-align: center; white-space: nowrap; overflow: hidden;
-            position: absolute; z-index: 10; margin: -15px 0 0 0;
-            padding: 0; width: 100%; height: 50px; border-bottom: 2px solid #222;
+        /* 
+           === NAVIGATION STYLES === 
+           Designed for High-End App Feel
+        */
+        .navbar-fixed {
+            position: fixed; top: 0; left: 0; width: 100%; height: var(--nav-height);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 30px; z-index: 100;
+            transition: background 0.3s ease, backdrop-filter 0.3s ease;
         }
-        .light-rope::after {
-            content: ''; display: block; width: 100%; height: 20px;
-            box-shadow: 
-                20px 15px 15px 2px #f00, 60px 15px 15px 2px #0f0, 
-                100px 15px 15px 2px #ff0, 140px 15px 15px 2px #00f,
-                180px 15px 15px 2px #f00, 220px 15px 15px 2px #0f0, 
-                260px 15px 15px 2px #ff0, 300px 15px 15px 2px #00f,
-                340px 15px 15px 2px #f00, 380px 15px 15px 2px #0f0, 
-                420px 15px 15px 2px #ff0, 460px 15px 15px 2px #00f,
-                500px 15px 15px 2px #f00, 540px 15px 15px 2px #0f0,
-                580px 15px 15px 2px #ff0, 620px 15px 15px 2px #00f,
-                660px 15px 15px 2px #f00, 700px 15px 15px 2px #0f0,
-                740px 15px 15px 2px #ff0, 780px 15px 15px 2px #00f,
-                820px 15px 15px 2px #f00, 860px 15px 15px 2px #0f0,
-                900px 15px 15px 2px #ff0, 940px 15px 15px 2px #00f,
-                980px 15px 15px 2px #f00, 1020px 15px 15px 2px #0f0,
-                1060px 15px 15px 2px #ff0, 1100px 15px 15px 2px #00f,
-                1140px 15px 15px 2px #f00, 1180px 15px 15px 2px #0f0,
-                1220px 15px 15px 2px #ff0, 1260px 15px 15px 2px #00f;
-            border-radius: 50%; animation: flash 2s infinite alternate;
-        }
-        @keyframes flash { from { opacity: 0.5; } to { opacity: 1; } }
-
-        /* --- Header --- */
-        .hero-header {
-            text-align: center; padding: 100px 20px 60px; color: #fff;
-            position: relative; z-index: 2;
-        }
-        .christmas-title {
-            font-family: var(--font-title); font-size: 5rem;
-            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            margin-bottom: 10px;
-        }
-        .christmas-subtitle {
-            font-size: 1.2rem; letter-spacing: 0.3em; color: var(--xmas-gold); font-weight: 600;
+        /* 滚动后变深并加模糊 */
+        .navbar-fixed.scrolled {
+            background: rgba(11, 11, 11, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        /* --- 主内容区 --- */
-        .gallery-wrapper {
-            max-width: 1000px; margin: 0 auto; padding: 0 20px;
-            position: relative; z-index: 5;
+        .nav-brand {
+            font-family: var(--font-display); font-size: 1.2rem; font-weight: 600;
+            letter-spacing: 0.1em; color: #fff;
         }
 
-        .album-card {
-            background: var(--card-bg);
-            border-radius: 12px; padding: 30px; margin-bottom: 80px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 0 10px rgba(255, 255, 255, 0.1);
-            position: relative;
+        .menu-trigger {
+            background: none; border: none; cursor: pointer;
+            display: flex; align-items: center; gap: 10px;
+            color: var(--accent-gold);
+            z-index: 101; /* Above fullscreen menu */
         }
-        /* 顶部红白条纹 */
-        .album-card::before {
-            content: ''; position: absolute; top: 0; left: 20px; right: 20px; height: 6px;
-            background: repeating-linear-gradient(45deg, var(--xmas-red), var(--xmas-red) 10px, #fff 10px, #fff 20px);
-            border-radius: 0 0 4px 4px;
+        .menu-text {
+            font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.1em;
         }
+        .hamburger {
+            width: 30px; height: 12px;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .hamburger span {
+            display: block; width: 100%; height: 1px; background: currentColor;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        /* Menu Open State Animation */
+        .menu-trigger.active .menu-text { display: none; }
+        .menu-trigger.active .hamburger span:first-child { transform: translateY(5px) rotate(45deg); }
+        .menu-trigger.active .hamburger span:last-child { transform: translateY(-6px) rotate(-45deg); }
 
-        .album-header { text-align: center; margin-bottom: 40px; }
-        .album-title {
-            font-family: var(--font-title); font-size: 3rem; color: var(--xmas-red);
-            margin-bottom: 10px;
+        /* Fullscreen Menu Overlay */
+        .fullscreen-menu {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
+            background: #0f0f0f;
+            z-index: 99;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.4s ease;
+            display: flex; align-items: center; justify-content: center;
         }
-        .album-desc { font-style: italic; color: #666; font-size: 1.1em; }
-
-        /* --- 封面图 (复古相册风格) --- */
-        .cover-section {
-            margin-bottom: 60px;
-            display: flex; justify-content: center;
-            position: relative;
-        }
+        .fullscreen-menu.active { opacity: 1; pointer-events: auto; }
         
-        .vintage-frame-large {
-            background: #fff;
-            padding: 20px; /* 白色边框厚度 */
-            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-            transform: rotate(-1.5deg); /* 微微倾斜，显得更自然 */
-            position: relative;
-            width: 100%;
+        .menu-inner { text-align: center; max-width: 600px; width: 100%; padding: 20px; }
+        .menu-header {
+            font-family: var(--font-mono); font-size: 0.8rem; color: #555;
+            letter-spacing: 0.3em; margin-bottom: 40px; border-bottom: 1px solid #333;
+            display: inline-block; padding-bottom: 5px;
+        }
+        .menu-list { list-style: none; }
+        .menu-list li { margin-bottom: 25px; opacity: 0; transform: translateY(20px); transition: 0.4s; }
+        /* Staggered animation for list items */
+        .fullscreen-menu.active .menu-list li { opacity: 1; transform: translateY(0); }
+        .fullscreen-menu.active .menu-list li:nth-child(1) { transition-delay: 0.1s; }
+        .fullscreen-menu.active .menu-list li:nth-child(2) { transition-delay: 0.2s; }
+        .fullscreen-menu.active .menu-list li:nth-child(3) { transition-delay: 0.3s; }
+        .fullscreen-menu.active .menu-list li:nth-child(4) { transition-delay: 0.4s; }
+
+        .menu-link {
+            text-decoration: none; color: #fff; display: flex; align-items: center; justify-content: center; gap: 15px;
+            font-family: var(--font-display); font-size: 2rem;
+            transition: color 0.3s;
+        }
+        .menu-link:hover { color: var(--accent-gold); }
+        .menu-link .idx { font-family: var(--font-mono); font-size: 0.8rem; color: #444; margin-top: 5px; }
+
+        .menu-footer {
+            margin-top: 60px; font-family: var(--font-mono); font-size: 0.7rem; color: #444;
         }
 
-        /* 相片角效果 (CSS Triangles) */
-        .corner {
-            position: absolute; width: 0; height: 0; z-index: 2;
-            border-style: solid;
+        /* --- Hero Section --- */
+        .archive-header {
+            height: 90vh;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center; position: relative;
+            background: radial-gradient(circle at center, #1a1a1a 0%, var(--bg-root) 70%);
+            padding-top: var(--nav-height); /* Prevent overlap */
         }
-        /* 左上角 */
-        .corner.top-left {
-            top: 15px; left: 15px;
-            border-width: 20px 20px 0 0;
-            border-color: var(--text-dark) transparent transparent transparent;
-        }
-        /* 右上角 */
-        .corner.top-right {
-            top: 15px; right: 15px;
-            border-width: 0 20px 20px 0;
-            border-color: transparent var(--text-dark) transparent transparent;
-        }
-        /* 左下角 */
-        .corner.bottom-left {
-            bottom: 15px; left: 15px;
-            border-width: 20px 0 0 20px;
-            border-color: transparent transparent transparent var(--text-dark);
-        }
-        /* 右下角 */
-        .corner.bottom-right {
-            bottom: 15px; right: 15px;
-            border-width: 0 0 20px 20px;
-            border-color: transparent transparent var(--text-dark) transparent;
-        }
+        .top-bar { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
+        .mono-tag { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-gold); border: 1px solid rgba(197, 164, 126, 0.3); padding: 4px 8px; border-radius: 2px; }
+        .main-title { font-family: var(--font-display); font-size: clamp(3rem, 10vw, 6rem); letter-spacing: 0.1em; margin-bottom: 20px; text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .sub-title { font-size: 1.1rem; color: var(--text-secondary); letter-spacing: 0.2em; font-weight: 300; text-transform: uppercase; }
+        .scroll-line { width: 1px; height: 80px; background: linear-gradient(to bottom, var(--accent-gold), transparent); position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); }
 
-        .framed-img {
-            display: block; width: 100%; height: auto;
-            border: 1px solid #ddd; /* 图片本身的细边框 */
-        }
-
-        .ribbon {
-            position: absolute; right: -8px; top: -8px; z-index: 3;
-            width: 85px; height: 85px; overflow: hidden;
-        }
-        .ribbon span {
-            position: absolute; display: block; width: 120px; padding: 5px 0;
-            background-color: var(--xmas-red); box-shadow: 0 5px 10px rgba(0,0,0,0.3);
-            color: #fff; font-family: var(--font-body); font-weight: bold;
-            font-size: 10px; text-align: center; text-transform: uppercase;
-            left: -8px; top: 22px; transform: rotate(45deg);
-        }
-
-        /* --- 内页照片 (拍立得风格) --- */
-        .photo-grid { display: flex; flex-direction: column; gap: 40px; }
-        .photo-item { width: 100%; display: flex; justify-content: center; }
-        .polaroid-frame {
-            background: #fff;
-            padding: 12px 12px 45px 12px; /* 底部留白写字 */
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            transition: transform 0.3s;
-            max-width: 100%;
-        }
-        .photo-item:nth-child(odd) .polaroid-frame { transform: rotate(1deg); }
-        .photo-item:nth-child(even) .polaroid-frame { transform: rotate(-1deg); }
+        /* --- Content Layout --- */
+        .content-wrapper { max-width: var(--container-width); margin: 0 auto; padding: 0 40px; position: relative; z-index: 2; }
         
-        .polaroid-frame:hover {
-            transform: rotate(0deg) scale(1.02) !important;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-            z-index: 5;
+        .album-container {
+            display: grid;
+            grid-template-columns: 350px 1fr; 
+            gap: 60px;
+            margin-bottom: 150px;
+            /* 用于锚点定位时的偏移，避免被navbar遮挡 */
+            scroll-margin-top: 100px; 
+            border-top: 1px solid var(--border-color);
+            padding-top: 60px;
         }
 
-        .content-img {
-            display: block; width: 100%; height: auto;
-            max-height: 85vh; object-fit: contain; background: #eee;
+        .sticky-wrapper { position: sticky; top: 100px; padding-right: 20px; }
+        .album-meta { display: flex; justify-content: space-between; font-family: var(--font-mono); color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .album-name { font-family: var(--font-display); font-size: 2.5rem; line-height: 1.2; margin-bottom: 20px; color: #fff; }
+        .separator-line { width: 40px; height: 2px; background: var(--accent-gold); margin-bottom: 25px; }
+        .album-desc { font-size: 1rem; color: #aaa; margin-bottom: 40px; font-weight: 300; text-align: justify; }
+        .tech-stats { font-family: var(--font-mono); font-size: 0.7rem; color: #555; }
+        .tech-stats span { color: #888; margin-right: 5px; text-transform: uppercase; }
+
+        .masonry-grid { column-count: 2; column-gap: 30px; }
+        .gallery-item { break-inside: avoid; margin-bottom: 30px; position: relative; }
+        .img-frame {
+            position: relative; overflow: hidden; background: #111;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
         }
+        .img-frame:hover { transform: translateY(-5px); box-shadow: 0 20px 50px rgba(0,0,0,0.7); }
+        .photo-img { display: block; width: 100%; height: auto; filter: brightness(0.9) contrast(1.05); transition: filter 0.4s ease, transform 0.6s ease; }
+        .img-frame:hover .photo-img { filter: brightness(1.05) contrast(1.05); transform: scale(1.03); }
         
-        .caption {
-            font-family: var(--font-title); font-size: 1.4rem; color: #444;
-            margin-top: 15px; text-align: center;
+        .overlay-badge {
+            position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.9); color: #000;
+            padding: 4px 10px; font-family: var(--font-mono); font-size: 0.6rem; font-weight: bold; letter-spacing: 0.1em; pointer-events: none;
         }
-
-        .site-footer {
-            text-align: center; color: rgba(255,255,255,0.8);
-            margin-top: 50px; font-family: var(--font-body);
+        .img-caption-glass {
+            position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);
+            padding: 15px; border-top: 1px solid rgba(255,255,255,0.1);
+            transform: translateY(100%); transition: transform 0.3s ease;
         }
+        .img-frame:hover .img-caption-glass { transform: translateY(0); }
+        .img-caption-glass p { font-size: 0.85rem; color: #ddd; font-weight: 300; text-align: center; }
 
-        @media (max-width: 768px) {
-            .christmas-title { font-size: 3.5rem; }
-            .album-card { padding: 15px; }
-            .vintage-frame-large { padding: 10px; transform: rotate(0deg); }
-            /* 手机端相片角稍微小一点 */
-            .corner { border-width: 12px !important; } 
-            .corner.top-left { border-width: 12px 12px 0 0 !important; }
-            .corner.top-right { border-width: 0 12px 12px 0 !important; }
-            .corner.bottom-left { border-width: 12px 0 0 12px !important; }
-            .corner.bottom-right { border-width: 0 0 12px 12px !important; }
+        .archive-footer { padding: 80px 0; border-top: 1px solid var(--border-color); text-align: center; }
+        .archive-footer p { font-family: var(--font-mono); font-size: 0.7rem; color: #444; letter-spacing: 0.2em; margin-bottom: 10px; }
+
+        /* ------------------------------------------------------------------ */
+        /* MOBILE OPTIMIZATION (Max-width: 900px)                             */
+        /* ------------------------------------------------------------------ */
+        @media (max-width: 900px) {
+            .navbar-fixed { padding: 0 20px; }
+            .archive-header { height: 70vh; }
+            .content-wrapper { padding: 0 20px; }
+            
+            .album-container {
+                display: flex; flex-direction: column; gap: 40px;
+                padding-top: 40px; margin-bottom: 100px;
+                scroll-margin-top: 80px;
+            }
+
+            /* 左侧信息栏优化 */
+            .album-info-col { width: 100%; margin-bottom: 0; }
+            .sticky-wrapper { position: static; }
+            .album-name { font-size: 2rem; margin-bottom: 15px; }
+            .album-desc { font-size: 0.9rem; line-height: 1.5; color: #999; margin-bottom: 20px; }
+
+            /* 图片流优化 */
+            .masonry-grid { column-count: 1; }
+            
+            /* 移动端标题直接显示在下方，不再遮挡图片 */
+            .img-caption-glass {
+                position: relative; transform: none; background: transparent; backdrop-filter: none;
+                padding: 12px 0 0 0; border-top: none; text-align: left;
+            }
+            .img-caption-glass p { color: #888; font-size: 0.8rem; text-align: left; }
+            
+            .img-frame { box-shadow: none; background: transparent; overflow: visible; }
+            .photo-img { border-radius: 4px; }
+            .cover-item .photo-img { border-radius: 4px; }
+
+            /* 移动端菜单样式微调 */
+            .menu-link { font-size: 1.5rem; }
         }
     </style>
   </body>
