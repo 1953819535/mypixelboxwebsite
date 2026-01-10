@@ -7,6 +7,7 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.API_BASE_URL;
 const IMAGE_URL = import.meta.env.IMAGE_URL;
 const ICP_NUMBER = "浙ICP备2025208482号-2";
+const PSB_NUMBER = "浙公网安备33010602014222号";
 
 function getImg(path, w = 0, q = 90) {
   if (!path) return "";
@@ -350,7 +351,9 @@ const gallery = await fetchGallery();
   </main>
 
   <footer style="padding:60px; text-align:center; font-size:11px; color:#444; border-top:1px solid #1a1a1a;">
-    <a href="https://beian.miit.gov.cn/" style="color:inherit; text-decoration:none;">{ICP_NUMBER}</a>
+    <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">{ICP_NUMBER}</a>
+    &nbsp;|&nbsp;
+    <a href="https://www.beian.gov.cn/" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">{PSB_NUMBER}</a>
   </footer>
 
   <!-- Lightbox -->
@@ -507,5 +510,6 @@ const gallery = await fetchGallery();
       if(e.key === 'ArrowLeft') changePhoto(null, -1);
     });
   </script>
+  
 </body>
 </html>
