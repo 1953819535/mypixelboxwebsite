@@ -1,24 +1,32 @@
 ---
 // ==========================================
-// 1. 服务端数据处理 (SSG)
+// 1. 服务端数据处理 (Server-Side Logic)
 // ==========================================
 import axios from 'axios';
 
+// 环境变量配置
 const API_BASE_URL = import.meta.env.API_BASE_URL;
 const IMAGE_URL = import.meta.env.IMAGE_URL;
-const ICP_NUMBER = "浙ICP备2025208482号-2";
-const PSB_NUMBER = "浙公网安备33010602014222号";
 
+/**
+ * 图片地址处理工具
+ * @param {string} path - 图片路径/ID
+ * @param {number} w - 宽度 (0 为原图)
+ * @param {number} q - 质量 (默认 90)
+ */
 function getImg(path, w = 0, q = 90) {
   if (!path) return "";
   if (path.startsWith("http")) return path;
   if (!IMAGE_URL) return path;
+  
   const clean = path.replace(/^\//, "");
   if (!w) return `${IMAGE_URL}/${clean}`;
   return `${IMAGE_URL}/cdn-cgi/image/width=${w},quality=${q},format=auto/${clean}`;
 }
 
-// 格式化日期工具: YYYY.MM.DD
+/**
+ * 格式化日期工具: YYYY.MM.DD
+ */
 function formatDate(isoString) {
   if (!isoString) return "";
   const date = new Date(isoString);
@@ -28,6 +36,9 @@ function formatDate(isoString) {
   return `${y}.${m}.${d}`;
 }
 
+/**
+ * 获取相册数据
+ */
 async function fetchGallery() {
   try {
     if (!API_BASE_URL) return [];
@@ -38,23 +49,23 @@ async function fetchGallery() {
       id: album.id,
       title: album.name,
       desc: album.description || "Collection of visual moments.",
-      // --- 修改点：这里改为具体的创建日期 ---
-      createTime: formatDate(album.createTime), 
-      // ----------------------------------
-      coverFull: getImg(album.coverPhotoUrl, 1600),
+      createTime: formatDate(album.createTime),
+      coverFull: getImg(album.coverPhotoUrl, 1200),
       coverThumb: getImg(album.coverPhotoUrl, 800),
       photos: (album.photos || []).map(p => ({
         thumb: getImg(p.fileID, 800), 
-        full: getImg(p.fileID, 1600),
+        full: getImg(p.fileID, 1200),
         title: p.title || "Untitled", 
       })),
       index: idx
     }));
   } catch (e) {
+    console.error("Fetch Gallery Error:", e);
     return [];
   }
 }
 
+// 执行数据获取
 const gallery = await fetchGallery();
 ---
 
@@ -65,13 +76,14 @@ const gallery = await fetchGallery();
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MYPIXELBOX | The Anthology</title>
   
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 
   <style>
     /* ==========================================
-       2. CSS 样式
+       2. CSS 样式系统
        ========================================== */
     :root {
       --bg: #0a0a0a;
@@ -89,10 +101,11 @@ const gallery = await fetchGallery();
       color: var(--text-main);
       font-family: var(--font-sans);
       overflow-x: hidden;
+      /* 噪点背景图 */
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
     }
 
-    /* 顶部导航 */
+    /* --- Top Navigation --- */
     .nav-bar {
       position: fixed; top: 0; left: 0; width: 100%; height: 80px;
       padding: 0 40px;
@@ -115,7 +128,7 @@ const gallery = await fetchGallery();
     }
     .menu-btn:hover { background: #fff; color: #000; }
 
-    /* 目录 Overlay */
+    /* --- Index Overlay (Menu) --- */
     .index-overlay {
       position: fixed; inset: 0; z-index: 800;
       background: rgba(5,5,5,0.98);
@@ -135,15 +148,13 @@ const gallery = await fetchGallery();
     }
     .index-item:hover { color: #fff; padding-left: 10px; border-color: #444; }
     .index-item h3 { font-family: var(--font-serif); font-size: 1.8rem; font-weight: 300; margin-bottom: 5px; }
-    /* 目录中显示日期 */
     .index-meta { font-family: monospace; font-size: 12px; letter-spacing: 1px; color: #555; }
-
     .index-close {
       position: absolute; top: 30px; right: 40px;
       font-size: 30px; cursor: pointer; color: #fff; padding: 10px;
     }
 
-    /* 主内容 */
+    /* --- Main Content --- */
     main { padding-top: 100px; }
     .chapter {
       margin-bottom: 140px;
@@ -161,7 +172,7 @@ const gallery = await fetchGallery();
     .ch-meta { font-size: 11px; letter-spacing: 2px; color: #555; text-transform: uppercase; margin-top: 10px; font-family: monospace;}
     .ch-desc { font-family: var(--font-serif); font-size: 1.1rem; color: #888; font-style: italic; max-width: 400px; text-align: right;}
 
-    /* 横向流 */
+    /* --- Horizontal Stream --- */
     .stream {
       display: flex; gap: 40px;
       padding: 0 60px 40px;
@@ -175,7 +186,6 @@ const gallery = await fetchGallery();
       flex: 0 0 auto; scroll-snap-align: center;
       display: flex; flex-direction: column; gap: 12px;
     }
-    
     .card.is-cover { margin-right: 40px; position: relative; }
     .card.is-cover::after {
       content: ""; position: absolute; right: -30px; top: 10%; height: 80%;
@@ -205,23 +215,7 @@ const gallery = await fetchGallery();
       text-transform: uppercase;
     }
 
-    /* 移动端适配 */
-    @media (max-width: 768px) {
-      .nav-bar { padding: 0 20px; }
-      .index-list { padding: 0 20px; }
-      .chapter-header { padding: 0 20px 20px; grid-template-columns: 1fr; gap: 10px; text-align: left; }
-      .ch-desc { text-align: left; max-width: 100%; font-size: 1rem; }
-      .stream { padding: 0 20px 20px; gap: 15px; }
-      .card.is-cover { margin-right: 15px; }
-      .card.is-cover::after { display: none; }
-      .card-img-box { height: 55vh; max-width: 88vw; }
-      .card-img-box img { width: 100%; height: 100%; object-fit: cover; }
-      .ch-title h2 { font-size: 2.2rem; }
-    }
-
-    /* ==========================================
-       3. Lightbox (带切换)
-       ========================================== */
+    /* --- Lightbox --- */
     .lightbox {
       position: fixed; inset: 0; z-index: 999;
       background: #000;
@@ -290,43 +284,96 @@ const gallery = await fetchGallery();
     }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+    /* --- Footer & Beian --- */
+    footer {
+      width: 100%;
+      padding: 80px 20px 40px;
+      background: linear-gradient(to top, #050505, transparent);
+      display: flex; justify-content: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .footer-content {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; font-family: var(--font-sans);
+    }
+    .copyright {
+      font-size: 12px; color: #444; letter-spacing: 0.5px; margin-bottom: 4px;
+    }
+    .beian-group {
+      display: flex; align-items: center; gap: 15px;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .beian-item {
+      display: flex; align-items: center;
+      text-decoration: none; font-size: 11px;
+      color: #555; transition: color 0.3s ease; letter-spacing: 0.5px;
+    }
+    .beian-item:hover { color: #aaa; }
+    .police-icon {
+      width: 14px; height: 14px; margin-right: 5px;
+      opacity: 0.6; transition: opacity 0.3s ease;
+    }
+    .beian-item:hover .police-icon { opacity: 1; }
+    .separator { color: #333; font-size: 10px; display: inline-block; }
+
+    /* --- Mobile Responsive --- */
+    @media (max-width: 768px) {
+      .nav-bar { padding: 0 20px; }
+      .index-list { padding: 0 20px; }
+      .chapter-header { padding: 0 20px 20px; grid-template-columns: 1fr; gap: 10px; text-align: left; }
+      .ch-desc { text-align: left; max-width: 100%; font-size: 1rem; }
+      .stream { padding: 0 20px 20px; gap: 15px; }
+      .card.is-cover { margin-right: 15px; }
+      .card.is-cover::after { display: none; }
+      .card-img-box { height: 55vh; max-width: 88vw; }
+      .card-img-box img { width: 100%; height: 100%; object-fit: cover; }
+      .ch-title h2 { font-size: 2.2rem; }
+      
+      /* Footer Mobile */
+      footer { padding-bottom: 60px; }
+      .footer-content { gap: 15px; }
+      .beian-group { flex-direction: column; gap: 8px; }
+      .separator { display: none; }
+    }
   </style>
 </head>
 <body>
 
+  <!-- Navigation -->
   <nav class="nav-bar">
     <div class="brand">MYPIXELBOX</div>
     <div class="menu-btn" onclick="toggleMenu()">Index</div>
   </nav>
 
-  <!-- 目录 -->
+  <!-- Overlay Menu -->
   <div id="index-overlay" class="index-overlay">
     <div class="index-close" onclick="toggleMenu()">×</div>
     <ul class="index-list">
       {gallery.map((album, idx) => (
         <li class="index-item" onclick={`scrollToAlbum(${idx})`}>
           <h3>{album.title}</h3>
-          <!-- 目录中显示创建时间 createTime -->
           <div class="index-meta">{album.createTime} · {album.photos.length} Frames</div>
         </li>
       ))}
     </ul>
   </div>
 
+  <!-- Main Feed -->
   <main>
     {gallery.map((album, aIdx) => (
       <section class="chapter" id={`album-${aIdx}`}>
+        <!-- Chapter Header -->
         <div class="chapter-header">
           <div class="ch-title">
             <h2>{album.title}</h2>
-            <!-- 章节头部显示 createTime -->
             <div class="ch-meta">{album.createTime} &nbsp;/&nbsp; VOL.{aIdx + 1}</div>
           </div>
           <div class="ch-desc">{album.desc}</div>
         </div>
 
+        <!-- Horizontal Scroll Stream -->
         <div class="stream" id={`track-${aIdx}`}>
-          <!-- Cover -->
+          <!-- Cover Card -->
           <div class="card is-cover" onclick={`openLightbox(${aIdx}, -1)`}>
             <div class="card-img-box">
               <div class="cover-badge">COVER</div>
@@ -335,7 +382,7 @@ const gallery = await fetchGallery();
             <div class="caption">The Cover</div>
           </div>
 
-          <!-- Photos -->
+          <!-- Photo Cards -->
           {album.photos.map((photo, pIdx) => (
             <div class="card" onclick={`openLightbox(${aIdx}, ${pIdx})`}>
               <div class="card-img-box">
@@ -350,10 +397,28 @@ const gallery = await fetchGallery();
     ))}
   </main>
 
-  <footer style="padding:60px; text-align:center; font-size:11px; color:#444; border-top:1px solid #1a1a1a;">
-    <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">{ICP_NUMBER}</a>
-    &nbsp;|&nbsp;
-    <a href="https://www.beian.gov.cn/" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">{PSB_NUMBER}</a>
+  <!-- Footer -->
+  <footer>
+    <div class="footer-content">
+      <div class="copyright">
+        &copy; {new Date().getFullYear()} MYPIXELBOX. All Rights Reserved.
+      </div>
+      
+      <div class="beian-group">
+        <!-- ICP -->
+        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="beian-item">
+          浙ICP备2025208482号-2
+        </a>
+        
+        <span class="separator">|</span>
+
+        <!-- 公网安备 -->
+        <a href="https://beian.mps.gov.cn/#/query/webSearch?code=33010602014222" target="_blank" rel="noopener" class="beian-item">
+          <img src="/src/assets/img.png" alt="警徽" class="police-icon">
+          <span>浙公网安备 33010602014222号</span>
+        </a>
+      </div>
+    </div>
   </footer>
 
   <!-- Lightbox -->
@@ -364,7 +429,7 @@ const gallery = await fetchGallery();
 
     <div class="lb-stage" id="lb-stage">
       <div class="spinner" id="lb-spinner"></div>
-      <img id="lb-img" class="lb-img" src="" />
+      <img id="lb-img" class="lb-img" src="" alt="Detail View" />
       
       <div class="lb-nav-zone lb-prev-zone" onclick="changePhoto(event, -1)">
         <div class="lb-arrow">&#8249;</div>
@@ -379,7 +444,9 @@ const gallery = await fetchGallery();
     </div>
   </div>
 
+  <!-- Client Side Script -->
   <script is:inline define:vars={{ clientData: gallery }}>
+    // --- Menu Control ---
     const menu = document.getElementById('index-overlay');
     window.toggleMenu = function() {
       menu.classList.toggle('active');
@@ -395,18 +462,20 @@ const gallery = await fetchGallery();
       }
     };
 
+    // --- Intersection Observer (Fade in) ---
     const observer = new IntersectionObserver(entries => {
       entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: 0.1 });
     document.querySelectorAll('.chapter').forEach(el => observer.observe(el));
 
+    // --- Horizontal Wheel Scroll ---
     document.querySelectorAll('.stream').forEach(track => {
       track.addEventListener('wheel', e => {
         if(e.deltaY !== 0) { e.preventDefault(); track.scrollLeft += e.deltaY; }
       }, { passive: false });
     });
 
-    // Lightbox Logic
+    // --- Lightbox Logic ---
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lb-img');
     const lbSpinner = document.getElementById('lb-spinner');
@@ -421,6 +490,7 @@ const gallery = await fetchGallery();
       currentPIdx = pIdx;
       updateLbImage(false);
       lb.style.display = 'flex';
+      // Force Reflow
       lb.offsetHeight;
       lb.classList.add('active');
       document.body.style.overflow = 'hidden';
@@ -440,6 +510,7 @@ const gallery = await fetchGallery();
       const photosCount = albums[currentAIdx].photos.length;
       let next = currentPIdx + dir;
       
+      // Wrap around logic including cover (index -1)
       if (next < -1) next = photosCount - 1; 
       if (next >= photosCount) next = -1;
       
@@ -477,7 +548,7 @@ const gallery = await fetchGallery();
       };
     }
 
-    // Swipe & Key
+    // --- Swipe & Keyboard Navigation ---
     let touchStartX = 0;
     let touchStartY = 0;
     const stage = document.getElementById('lightbox');
@@ -495,11 +566,11 @@ const gallery = await fetchGallery();
 
       if (Math.abs(diffX) > Math.abs(diffY)) {
         if (Math.abs(diffX) > 40) {
-          if (diffX < 0) changePhoto(null, 1);
-          else changePhoto(null, -1);
+          if (diffX < 0) changePhoto(null, 1); // Swipe Left -> Next
+          else changePhoto(null, -1);          // Swipe Right -> Prev
         }
       } else {
-        if (Math.abs(diffY) > 60) closeLightbox();
+        if (Math.abs(diffY) > 60) closeLightbox(); // Swipe Up/Down -> Close
       }
     }, {passive: true});
 
@@ -510,6 +581,5 @@ const gallery = await fetchGallery();
       if(e.key === 'ArrowLeft') changePhoto(null, -1);
     });
   </script>
-  
 </body>
 </html>
