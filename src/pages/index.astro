@@ -98,8 +98,8 @@ const pageTitle = "WANDER · Photography Log";
         aria-label="打开目录"
         aria-expanded="false"
         aria-controls="menu-overlay"
+        title="CONTACT SHEET"
       >
-        <span class="nav-btn-text">CONTACT SHEET</span>
         <span class="nav-btn-icon" aria-hidden="true">
           <span></span>
           <span></span>
@@ -526,12 +526,13 @@ const pageTitle = "WANDER · Photography Log";
       }
 
       .nav-btn {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 10px 12px 10px 16px;
+        display: grid;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        place-items: center;
         border: 1px solid var(--line);
-        border-radius: 999px;
+        border-radius: 50%;
         background: rgba(230, 227, 221, 0.72);
         -webkit-backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
@@ -542,15 +543,6 @@ const pageTitle = "WANDER · Photography Log";
       .nav-btn:hover {
         border-color: var(--ink);
         background: rgba(230, 227, 221, 0.95);
-      }
-      .nav-btn-text {
-        font-family: var(--mono);
-        font-size: 10px;
-        letter-spacing: 0.2em;
-        color: var(--muted);
-      }
-      .nav-btn:hover .nav-btn-text {
-        color: var(--ink);
       }
       .nav-btn-icon {
         display: grid;
@@ -567,9 +559,6 @@ const pageTitle = "WANDER · Photography Log";
       }
 
       @media (max-width: 560px) {
-        .nav-btn-text {
-          display: none;
-        }
         .brand-sub {
           display: none;
         }
@@ -700,7 +689,7 @@ const pageTitle = "WANDER · Photography Log";
 
       .close-btn-fixed {
         position: fixed;
-        top: 20px;
+        top: 18px;
         right: 22px;
         z-index: 100;
         display: grid;
