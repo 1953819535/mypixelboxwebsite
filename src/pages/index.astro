@@ -1,8 +1,11 @@
 ---
+import "@fontsource-variable/archivo/wdth.css";
+import "@fontsource/space-mono/400.css";
+import "@fontsource/space-mono/700.css";
 import axios from "axios";
 
 // ----------------------------------------------------------------------
-// 1. 工具函数
+// 工具函数
 // ----------------------------------------------------------------------
 function getImg(path: string, w: number = 0, q: number = 80) {
   if (!path) return "";
@@ -14,8 +17,12 @@ function getImg(path: string, w: number = 0, q: number = 80) {
   return `${imageUrl}/cdn-cgi/image/width=${w},quality=${q},format=auto/${cleanPath}`;
 }
 
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
 // ----------------------------------------------------------------------
-// 2. 数据获取与类型
+// 数据获取与类型
 // ----------------------------------------------------------------------
 interface Photo {
   _id: string;
@@ -42,7 +49,8 @@ async function fetchAlbums(): Promise<Album[]> {
     const API_BASE_URL = import.meta.env.API_BASE_URL;
     if (!API_BASE_URL) return [];
     const response = await axios.get(
-      `${API_BASE_URL}/api/albums/gallery/public`
+      `${API_BASE_URL}/api/albums/gallery/public`,
+      { timeout: 8000 }
     );
     if (response.data.code !== 0) throw new Error(response.data.message);
 
@@ -57,8 +65,11 @@ async function fetchAlbums(): Promise<Album[]> {
 }
 
 const albums: Album[] = await fetchAlbums();
-const pageTitle = "WANDER | Some Portfolio";
-const isTestMode = import.meta.env.TEST_MODE === "true";
+const totalFrames = albums.reduce(
+  (sum, album) => sum + (album.photos?.length ?? 0),
+  0
+);
+const pageTitle = "WANDER · Photography Log";
 ---
 
 <html lang="zh-CN">
@@ -67,95 +78,117 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+    <meta name="theme-color" content="#E6E3DD" />
     <title>{pageTitle}</title>
-    {isTestMode && <meta name="test-mode" content="enabled" />}
   </head>
   <body>
-    <!-- 导航按钮 -->
-    <button id="menu-btn" class="nav-btn">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        ><line x1="3" y1="12" x2="21" y2="12"></line><line
-          x1="3"
-          y1="6"
-          x2="21"
-          y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg
-      >
-    </button>
+    <a class="skip-link" href="#log-start">跳到内容</a>
 
-    <!-- 菜单遮罩 -->
-    <div id="menu-overlay" class="menu-overlay">
+    <!-- 顶部导航 -->
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand-name">WANDER</span>
+        <span class="brand-sub">PHOTO LOG</span>
+      </div>
+      <button
+        id="menu-btn"
+        class="nav-btn"
+        aria-label="打开目录"
+        aria-expanded="false"
+        aria-controls="menu-overlay"
+      >
+        <span class="nav-btn-text">CONTACT SHEET</span>
+        <span class="nav-btn-icon" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+    </header>
+
+    <!-- 目录（Contact Sheet） -->
+    <div
+      id="menu-overlay"
+      class="menu-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="CONTACT SHEET"
+    >
       <div class="menu-scroll-wrapper">
         <div class="menu-content">
-          <p class="menu-label">INDEX</p>
+          <p class="menu-kicker">CONTACT SHEET · 目录</p>
           <ul class="menu-list">
             <li>
-              <!-- Home 不需要 padding-right 因为没有序号 -->
               <button data-goto="intro" class="menu-link home-link">
-                Home
+                <span class="menu-link-main">
+                  <span class="menu-name">INTRO</span>
+                  <span class="menu-num">00</span>
+                </span>
+                <span class="menu-count">开始</span>
               </button>
             </li>
             {
               albums.map((album, index) => (
                 <li>
                   <button data-goto={`album-${album.id}`} class="menu-link">
-                    {album.name}
-                    <span class="menu-num">0{index + 1}</span>
+                    <span class="menu-link-main">
+                      <span class="menu-name">{album.name}</span>
+                      <span class="menu-num">ROLL {pad(index + 1)}</span>
+                    </span>
+                    <span class="menu-count">
+                      {album.photos.length} FRAMES
+                    </span>
                   </button>
                 </li>
               ))
             }
           </ul>
+          <p class="menu-foot">WANDER · SOME PHOTOGRAPHY LOG</p>
         </div>
       </div>
 
-      <button id="close-menu" class="close-btn-fixed">
+      <button id="close-menu" class="close-btn-fixed" aria-label="关闭目录">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          width="32"
-          height="32"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="1"
+          stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
-          ><circle cx="12" cy="12" r="10"></circle><line
-            x1="15"
-            y1="9"
-            x2="9"
-            y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg
         >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
       </button>
     </div>
 
-    <!-- 主内容区 -->
-    <main class="snap-container">
+    <!-- 主内容 -->
+    <main id="log-start" class="snap-container">
       <section id="intro" class="snap-section intro-section">
+        <div class="intro-meta">
+          <span>LOG Nº 001</span>
+          <span>{pad(albums.length)} ROLLS · {pad(totalFrames)} FRAMES</span>
+        </div>
+
         <div class="intro-content">
           <h1>WANDER</h1>
-          <p>Some Photography Log</p>
-          {isTestMode && <div class="test-badge">Test Mode</div>}
+          <p class="intro-sub">SOME PHOTOGRAPHY LOG</p>
+          <div class="safelight">
+            <span class="safelight-dot" aria-hidden="true"></span>
+            SAFELIGHT ON
+          </div>
         </div>
-        <div class="scroll-indicator">
-          <svg
-            width="24"
-            height="24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"></path></svg
-          >
+
+        <p class="scroll-cue" aria-hidden="true">SCROLL</p>
+        <div class="intro-strip" aria-hidden="true">
+          <div class="sprockets"></div>
+          <span class="edge-code">WANDER · 35MM · SOME PHOTOGRAPHY LOG</span>
+          <div class="sprockets"></div>
         </div>
       </section>
 
@@ -165,45 +198,72 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
             {album.coverPhotoUrl && (
               <section
                 id={`album-${album.id}`}
-                class="snap-section cover-layout"
+                class="snap-section cover-section"
               >
-                <div class="cover-image-area">
-                  <img
-                    src={getImg(album.coverPhotoUrl, 1600)}
-                    alt={album.name}
-                    loading="lazy"
-                  />
+                <div class="cover-visual">
+                  <figure class="film-strip">
+                    <div class="sprockets" aria-hidden="true"></div>
+                    <div class="film-window">
+                      <img
+                        src={getImg(album.coverPhotoUrl, 1600)}
+                        alt={album.name}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                    <span class="edge-code">
+                      WANDER · ROLL {pad(index + 1)}
+                    </span>
+                    <div class="sprockets" aria-hidden="true"></div>
+                  </figure>
                 </div>
-                <div class="cover-info-area">
-                  <div class="cover-info-inner">
-                    <span class="chapter-label">Chapter 0{index + 1}</span>
-                    <h2 class="chapter-title">{album.name}</h2>
-                    <div class="chapter-divider" />
-                    {album.description && (
-                      <p class="chapter-desc">{album.description}</p>
-                    )}
-                  </div>
+                <div class="cover-info">
+                  <p class="roll-label">ROLL {pad(index + 1)}</p>
+                  <h2>{album.name}</h2>
+                  {album.description && (
+                    <p class="cover-desc">{album.description}</p>
+                  )}
+                  <p class="cover-count">
+                    {album.photos.length} FRAMES
+                  </p>
                 </div>
               </section>
             )}
-            {album.photos.map((photo) => {
-              const isPortrait = photo.height > photo.width;
-              return (
-                <section
-                  class={`snap-section photo-layout ${isPortrait ? "layout-portrait" : "layout-landscape"}`}
-                >
-                  <div class="image-area">
-                    <img
-                      src={getImg(photo.fileID, 1600)}
-                      loading="lazy"
-                      alt={photo.description}
-                    />
-                  </div>
-                  <div class="text-area">
-                    <div class="text-inner">
-                      <div class="text-header">
-                        <span class="album-name">{album.name}</span>
-                        <span class="photo-meta">
+            {
+              album.photos.map((photo, photoIndex) => {
+                const isPortrait = photo.height > photo.width;
+                return (
+                  <section
+                    class={`snap-section photo-section ${
+                      isPortrait ? "is-portrait" : "is-landscape"
+                    }`}
+                  >
+                    <div class="photo-visual">
+                      <figure class="film-strip">
+                        <div class="sprockets" aria-hidden="true"></div>
+                        <div class="film-window">
+                          <img
+                            src={getImg(photo.fileID, 1600)}
+                            alt={photo.description || album.name}
+                            loading="lazy"
+                            decoding="async"
+                            width={photo.width}
+                            height={photo.height}
+                          />
+                        </div>
+                        <span class="edge-code">
+                          WANDER · ROLL {pad(index + 1)} · FRAME{" "}
+                          {pad(photoIndex + 1)}
+                        </span>
+                        <div class="sprockets" aria-hidden="true"></div>
+                      </figure>
+                    </div>
+                    <div class="photo-caption">
+                      <div class="caption-head">
+                        <span class="caption-roll">
+                          ROLL {pad(index + 1)} / FRAME {pad(photoIndex + 1)}
+                        </span>
+                        <span class="caption-meta">
                           {photo.width} × {photo.height}
                         </span>
                       </div>
@@ -211,27 +271,40 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
                         <p class="photo-desc">{photo.description}</p>
                       )}
                     </div>
-                  </div>
-                </section>
-              );
-            })}
+                  </section>
+                );
+              })
+            }
           </>
         ))
       }
 
-      <section class="snap-section footer-section">
-        <p>The End</p>
-      </section>
-      <section class="snap-section footer-section">
-        <div class="footer-beian">
-          <a
-            href="https://beian.miit.gov.cn/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="beian-link">浙ICP备2025208482号-2</a
-          >
+      {
+        albums.length === 0 && (
+          <section class="snap-section empty-section">
+            <div class="empty-inner">
+              <p class="empty-kicker">NO ROLLS YET</p>
+              <p class="empty-note">相册正在冲洗中，连接数据后会自动出现。</p>
+            </div>
+          </section>
+        )
+      }
+
+      <footer class="snap-section footer-section">
+        <div class="footer-inner">
+          <p class="footer-end">END OF LOG</p>
+          <p class="footer-note">完 · 感谢观看</p>
+          <div class="footer-beian">
+            <a
+              href="https://beian.miit.gov.cn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="beian-link"
+              >浙ICP备2025208482号-2</a
+            >
+          </div>
         </div>
-      </section>
+      </footer>
     </main>
 
     <script>
@@ -239,59 +312,139 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
       const overlay = document.getElementById("menu-overlay");
       const closeMenuBtn = document.getElementById("close-menu");
       const menuLinks = document.querySelectorAll(".menu-link");
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
+      function openMenu() {
+        overlay?.classList.add("active");
+        menuBtn?.setAttribute("aria-expanded", "true");
+        closeMenuBtn?.focus();
+      }
+
+      function closeMenu() {
+        overlay?.classList.remove("active");
+        menuBtn?.setAttribute("aria-expanded", "false");
+        menuBtn?.focus();
+      }
 
       function toggleMenu() {
-        overlay?.classList.toggle("active");
+        if (overlay?.classList.contains("active")) {
+          closeMenu();
+        } else {
+          openMenu();
+        }
       }
 
       menuBtn?.addEventListener("click", toggleMenu);
-      closeMenuBtn?.addEventListener("click", toggleMenu);
+      closeMenuBtn?.addEventListener("click", closeMenu);
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && overlay?.classList.contains("active")) {
+          closeMenu();
+        }
+      });
 
       menuLinks.forEach((link) => {
-        link.addEventListener("click", (e) => {
+        link.addEventListener("click", () => {
           // @ts-ignore
-          const targetId = e.currentTarget.dataset.goto;
+          const targetId = link.dataset.goto;
           const targetElement = document.getElementById(targetId);
           if (targetElement) {
-            overlay?.classList.remove("active");
-            targetElement.scrollIntoView({ behavior: "smooth" });
+            closeMenu();
+            targetElement.scrollIntoView({
+              behavior: reduceMotion ? "auto" : "smooth",
+              block: "start",
+            });
           }
         });
       });
     </script>
 
-    <style>
+    <style is:global>
       :root {
-        --bg-color: #050505;
-        --text-main: #e4e4e7;
-        --text-sub: #71717a;
-        --accent: #f97316;
-        --panel-bg: rgba(5, 5, 5, 0.95);
+        --paper: #e6e3dd;
+        --surface: #efede8;
+        --paper-deep: #d9d6ce;
+        --ink: #201d18;
+        --muted: #6f6b62;
+        --faint: #a6a29a;
+        --line: #cfcbc2;
+        --grid-line: rgba(32, 29, 24, 0.055);
+        --film: #26221b;
+        --film-ink: #0f0d09;
+        --accent: #c74e24;
+        --mono: "Space Mono", ui-monospace, "SF Mono", "Cascadia Mono",
+          Consolas, monospace;
+        --display: "Archivo Variable", "Arial Narrow", Bahnschrift,
+          "PingFang SC", "Microsoft YaHei", sans-serif;
+        --body: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system,
+          sans-serif;
       }
+
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
-      body {
-        background-color: var(--bg-color);
-        color: var(--text-main);
-        font-family:
-          system-ui,
-          -apple-system,
-          sans-serif;
-        overflow: hidden;
+
+      html {
+        scrollbar-width: none;
       }
+
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--body);
+        overflow: hidden;
+        -webkit-tap-highlight-color: transparent;
+      }
+
       button {
         background: none;
         border: none;
         cursor: pointer;
         color: inherit;
-        -webkit-tap-highlight-color: transparent;
+        font: inherit;
       }
 
-      /* Snap 容器 */
+      img {
+        display: block;
+      }
+
+      ::selection {
+        background: var(--accent);
+        color: var(--paper);
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+
+      .skip-link {
+        position: fixed;
+        top: -100px;
+        left: 16px;
+        z-index: 200;
+        padding: 10px 14px;
+        background: var(--ink);
+        color: var(--paper);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-decoration: none;
+        transition: top 0.2s ease;
+      }
+      .skip-link:focus {
+        top: 16px;
+      }
+
+      /* ------------------------------------------------------------
+         Snap 容器
+      ------------------------------------------------------------ */
       .snap-container {
+        height: 100vh;
         height: 100dvh;
         width: 100vw;
         overflow-y: scroll;
@@ -304,56 +457,134 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         display: none;
       }
       .snap-section {
+        height: 100vh;
         height: 100dvh;
         width: 100vw;
         scroll-snap-align: start;
         scroll-snap-stop: always;
-        background-color: var(--bg-color);
-        overflow: hidden;
         position: relative;
-        display: flex;
+        overflow: hidden;
+        background: var(--paper);
       }
 
-      /* 导航按钮 */
-      .nav-btn {
+      /* ------------------------------------------------------------
+         顶部导航
+      ------------------------------------------------------------ */
+      .site-header {
         position: fixed;
-        top: 24px;
-        right: 24px;
-        z-index: 100;
-        padding: 12px;
-        background: rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
-        backdrop-filter: blur(8px);
-        color: white;
-        transition: background 0.3s;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 80;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 22px;
+        pointer-events: none;
+      }
+      .site-header > * {
+        pointer-events: auto;
       }
 
-      /* 菜单遮罩 - 基础层 */
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .brand-name {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 800;
+        font-size: 21px;
+        line-height: 1;
+        letter-spacing: 0.04em;
+      }
+      .brand-sub {
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.28em;
+        color: var(--muted);
+      }
+
+      .nav-btn {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 12px 10px 16px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(230, 227, 221, 0.72);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        transition:
+          border-color 0.25s ease,
+          background 0.25s ease;
+      }
+      .nav-btn:hover {
+        border-color: var(--ink);
+        background: rgba(230, 227, 221, 0.95);
+      }
+      .nav-btn-text {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+      }
+      .nav-btn:hover .nav-btn-text {
+        color: var(--ink);
+      }
+      .nav-btn-icon {
+        display: grid;
+        width: 20px;
+        height: 20px;
+        place-items: center;
+        gap: 4px;
+      }
+      .nav-btn-icon span {
+        display: block;
+        width: 18px;
+        height: 1.5px;
+        background: var(--ink);
+      }
+
+      @media (max-width: 560px) {
+        .nav-btn-text {
+          display: none;
+        }
+        .brand-sub {
+          display: none;
+        }
+      }
+
+      /* ------------------------------------------------------------
+         目录（Contact Sheet）
+      ------------------------------------------------------------ */
       .menu-overlay {
         position: fixed;
         inset: 0;
         z-index: 90;
-        background: rgba(0, 0, 0, 0.98);
-        backdrop-filter: blur(20px);
+        background: var(--film);
+        color: var(--paper);
         opacity: 0;
+        visibility: hidden;
         pointer-events: none;
-        transition: opacity 0.4s ease;
+        transition:
+          opacity 0.35s ease,
+          visibility 0.35s ease;
       }
       .menu-overlay.active {
         opacity: 1;
+        visibility: visible;
         pointer-events: auto;
       }
 
-      /* 菜单滚动容器 */
       .menu-scroll-wrapper {
         position: absolute;
         inset: 0;
+        display: flex;
         overflow-y: auto;
         overflow-x: hidden;
-        display: flex;
-        flex-direction: column;
-        padding-bottom: 120px; /* 避开底部关闭按钮 */
+        padding: 90px 24px 120px;
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
@@ -361,368 +592,542 @@ const isTestMode = import.meta.env.TEST_MODE === "true";
         display: none;
       }
 
-      /* 菜单内容 - 居中核心 */
       .menu-content {
-        margin: auto; /* 在 flex 容器中垂直水平居中 */
+        margin: auto;
         width: 100%;
-        max-width: 400px;
-        text-align: center;
-        padding: 40px 20px;
+        max-width: 760px;
       }
-
-      .menu-label {
-        color: var(--text-sub);
-        font-family: monospace;
+      .menu-kicker {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 34px;
+        font-family: var(--mono);
         font-size: 10px;
-        letter-spacing: 0.3em;
-        margin-bottom: 30px;
-        opacity: 0.5;
+        letter-spacing: 0.26em;
+        color: #a89c86;
+      }
+      .menu-kicker::before {
+        content: "";
+        width: 30px;
+        height: 1px;
+        background: var(--accent);
       }
 
       .menu-list {
         list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 12px; /* 间距更小，更精致 */
+        border-top: 1px solid rgba(230, 227, 221, 0.16);
       }
-
-      /* 菜单链接样式优化 */
       .menu-link {
-        position: relative;
-        display: inline-block; /* 允许根据内容宽度自适应 */
-        font-size: clamp(1.4rem, 5vw, 1.8rem); /* 字体适中，不巨大 */
-        font-weight: 300;
-        color: #a1a1aa;
-        transition: all 0.3s ease;
-        line-height: 1.2;
-        letter-spacing: 0.02em;
-        padding: 4px 0;
-
-        /* 关键修改：为序号预留右侧内部空间，防止溢出 */
-        padding-right: 24px;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 18px;
+        width: 100%;
+        padding: 20px 4px;
+        border-bottom: 1px solid rgba(230, 227, 221, 0.16);
+        color: #cfc7b8;
+        text-align: left;
+        transition:
+          color 0.25s ease,
+          padding-left 0.25s ease;
       }
-
-      /* Home 链接不需要留那个空 */
-      .menu-link.home-link {
-        padding-right: 0;
-      }
-
       .menu-link:hover {
-        color: white;
-      }
-
-      /* 序号样式优化 */
-      .menu-num {
-        position: absolute;
-        top: 6px; /* 稍微靠下一点，对齐文字顶部 */
-        right: 0; /* 紧贴 padding 的右边缘 */
-        font-family: monospace;
-        font-size: 10px;
-        color: var(--accent);
-        opacity: 0.6; /* 默认可见，但稍微暗一点 */
-        font-weight: 400;
-      }
-
-      .menu-link:hover .menu-num {
-        opacity: 1;
         color: #fff;
+        padding-left: 14px;
+      }
+      .menu-link-main {
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+        min-width: 0;
+      }
+      .menu-name {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 650;
+        font-size: clamp(1.35rem, 4.5vw, 2.1rem);
+        line-height: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .menu-num {
+        flex: none;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        color: var(--accent);
+      }
+      .menu-count {
+        flex: none;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.16em;
+        color: #8a8070;
+      }
+      .menu-link:hover .menu-count {
+        color: #bdb2a0;
       }
 
-      /* 关闭按钮固定 */
+      .menu-foot {
+        margin-top: 34px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.3em;
+        color: #6f6759;
+        text-align: center;
+      }
+
       .close-btn-fixed {
-        position: absolute;
-        bottom: 40px;
-        left: 50%;
-        transform: translateX(-50%);
+        position: fixed;
+        top: 20px;
+        right: 22px;
         z-index: 100;
-        color: var(--text-sub);
-        transition: color 0.3s;
-        padding: 10px;
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border: 1px solid rgba(230, 227, 221, 0.28);
+        border-radius: 50%;
+        color: var(--paper);
+        transition:
+          border-color 0.25s ease,
+          color 0.25s ease,
+          transform 0.25s ease;
+      }
+      .close-btn-fixed:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        transform: rotate(90deg);
       }
 
-      /* Intro */
+      /* ------------------------------------------------------------
+         负片条（Signature）
+      ------------------------------------------------------------ */
+      .sprockets {
+        height: 9px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='9' viewBox='0 0 22 9'%3E%3Crect x='2' y='1' width='7' height='7' rx='2' fill='%23E6E3DD'/%3E%3C/svg%3E");
+        background-repeat: repeat-x;
+        background-size: 22px 9px;
+      }
+
+      .film-strip {
+        display: block;
+        width: min(88vw, 900px);
+        max-width: 100%;
+        padding: 12px 14px 14px;
+        background: var(--film);
+        box-shadow: 0 34px 70px -34px rgba(20, 17, 11, 0.5);
+      }
+      .film-strip > .sprockets:first-child {
+        margin-bottom: 8px;
+      }
+      .film-strip > .sprockets:last-child {
+        margin-top: 8px;
+      }
+
+      .film-window {
+        background: var(--film-ink);
+        padding: 2px;
+      }
+      .film-window img {
+        width: 100%;
+        height: auto;
+        max-height: 56vh;
+        object-fit: contain;
+      }
+
+      .edge-code {
+        display: block;
+        margin: 8px 0 10px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        color: #a29480;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* ------------------------------------------------------------
+         Intro
+      ------------------------------------------------------------ */
       .intro-section {
+        display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
-        background-color: #0a0a0a;
+        background-image:
+          linear-gradient(var(--grid-line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+        background-size: 72px 72px;
       }
-      .intro-content h1 {
-        font-size: clamp(3rem, 12vw, 6rem);
-        font-weight: 100;
-        letter-spacing: 0.1em;
-        margin-bottom: 24px;
-        line-height: 1;
-      }
-      .intro-content p {
-        color: var(--text-sub);
-        font-family: monospace;
-        font-size: 14px;
-        letter-spacing: 0.1em;
-        opacity: 0.8;
-      }
-      .scroll-indicator {
+
+      .intro-meta {
         position: absolute;
-        bottom: 40px;
-        color: #3f3f46;
-        animation: bounce 2s infinite;
-      }
-      @keyframes bounce {
-        0%,
-        20%,
-        50%,
-        80%,
-        100% {
-          transform: translateY(0);
-        }
-        40% {
-          transform: translateY(-10px);
-        }
-        60% {
-          transform: translateY(-5px);
-        }
-      }
-      .test-badge {
-        margin-top: 20px;
-        padding: 5px;
-        background: yellow;
-        color: black;
-        font-size: 12px;
-        border-radius: 4px;
-        display: inline-block;
-      }
-
-      /* Cover Layout */
-      .cover-layout {
-        flex-direction: column;
-      }
-      .cover-image-area {
-        flex: 1;
-        width: 100%;
-        min-height: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 30px;
-        background-color: var(--bg-color);
-        position: relative;
-      }
-      .cover-image-area img {
-        max-width: 100%;
-        max-height: 100%;
-        width: auto;
-        height: auto;
-        object-fit: contain;
-        display: block;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-      }
-      .cover-info-area {
-        flex: none;
-        width: 100%;
-        background: linear-gradient(
-          to top,
-          var(--bg-color),
-          rgba(5, 5, 5, 0.95),
-          transparent
-        );
-        padding: 10px 24px 50px;
-        z-index: 10;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-      }
-      .cover-info-inner {
-        max-width: 600px;
-        margin: 0 auto;
-        width: 100%;
-        text-align: left;
-      }
-      .chapter-label {
-        display: block;
-        color: var(--accent);
-        font-weight: bold;
-        font-size: 12px;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
-        margin-bottom: 12px;
-      }
-      .chapter-title {
-        font-size: 2.5rem;
-        font-weight: 300;
-        color: #fff;
-        line-height: 1.1;
-        margin-bottom: 16px;
-      }
-      .chapter-divider {
-        width: 40px;
-        height: 2px;
-        background: rgba(255, 255, 255, 0.2);
-        margin-bottom: 16px;
-      }
-      .chapter-desc {
-        color: #a1a1aa;
-        font-size: 14px;
-        line-height: 1.6;
-        font-weight: 300;
-      }
-
-      @media (min-width: 768px) {
-        .cover-layout {
-          flex-direction: row;
-        }
-        .cover-image-area {
-          padding: 60px;
-        }
-        .cover-info-area {
-          width: 420px;
-          height: 100%;
-          background: var(--panel-bg);
-          border-left: 1px solid rgba(255, 255, 255, 0.05);
-          justify-content: center;
-          padding: 60px;
-        }
-        .chapter-title {
-          font-size: 3.5rem;
-          margin-bottom: 24px;
-        }
-        .chapter-desc {
-          font-size: 15px;
-        }
-      }
-
-      /* Photo Layout */
-      .photo-layout {
-        flex-direction: column;
-      }
-      .image-area {
-        flex: 1;
-        min-height: 0;
-        width: 100%;
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 16px;
-      }
-      .image-area img {
-        max-width: 100%;
-        max-height: 100%;
-        width: auto;
-        height: auto;
-        object-fit: contain;
-        display: block;
-        box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
-      }
-      .text-area {
-        flex: none;
-        width: 100%;
-        background: linear-gradient(
-          to top,
-          var(--bg-color),
-          rgba(5, 5, 5, 0.9),
-          transparent
-        );
-        padding: 16px 24px 40px;
-        z-index: 20;
-      }
-      .text-inner {
-        max-width: 900px;
-        margin: 0 auto;
-      }
-      .text-header {
+        top: 74px;
+        left: 24px;
+        right: 24px;
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 8px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.2em;
+        color: var(--muted);
       }
-      .album-name {
-        font-size: 1rem;
-        font-weight: 400;
-        color: white;
+
+      .intro-content {
+        position: relative;
+        z-index: 2;
+        padding-bottom: 110px;
       }
-      .photo-meta {
-        font-family: monospace;
-        font-size: 12px;
-        color: #52525b;
-        display: none;
+      .intro-content h1 {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 850;
+        font-size: clamp(4.2rem, 20vw, 12.5rem);
+        line-height: 0.9;
+        letter-spacing: -0.015em;
+        animation: intro-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.05s both;
       }
-      .photo-desc {
+      .intro-sub {
+        margin-top: 26px;
+        font-family: var(--mono);
+        font-size: clamp(10px, 1.4vw, 12px);
+        letter-spacing: 0.34em;
+        color: var(--muted);
+        animation: intro-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+      }
+      .safelight {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 26px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.3em;
+        color: var(--accent);
+        animation: intro-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.25s both;
+      }
+      .safelight-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: blip 2.4s ease-in-out infinite;
+      }
+
+      .scroll-cue {
+        position: absolute;
+        right: 28px;
+        bottom: 92px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.32em;
+        color: var(--muted);
+        writing-mode: vertical-rl;
+      }
+      @media (max-width: 760px) {
+        .scroll-cue {
+          display: none;
+        }
+      }
+
+      .intro-strip {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        padding: 10px 14px;
+        background: var(--film);
+      }
+      .intro-strip .edge-code {
+        margin: 8px 0 10px;
+      }
+
+      @keyframes intro-rise {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes blip {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.25;
+        }
+      }
+
+      /* ------------------------------------------------------------
+         相册封面（Roll 头）
+      ------------------------------------------------------------ */
+      .cover-section {
+        display: flex;
+        flex-direction: column;
+      }
+      .cover-visual {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 70px 20px 16px;
+      }
+      .cover-section .film-strip {
+        width: min(84vw, 760px);
+      }
+      .cover-section .film-window img {
+        max-height: 52vh;
+      }
+
+      .cover-info {
+        flex: none;
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 12px 24px 44px;
+      }
+      .roll-label {
+        margin-bottom: 10px;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.26em;
+        color: var(--accent);
+      }
+      .cover-info h2 {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 750;
+        font-size: clamp(2rem, 8vw, 3.4rem);
+        line-height: 1;
+        letter-spacing: 0.01em;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+      }
+      .cover-desc {
+        max-width: 52ch;
         font-size: 14px;
-        color: var(--text-sub);
-        font-weight: 300;
-        line-height: 1.5;
+        line-height: 1.75;
+        color: var(--muted);
+      }
+      .cover-count {
+        margin-top: 16px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.2em;
+        color: var(--faint);
       }
 
       @media (min-width: 768px) {
-        .layout-portrait {
+        .cover-section {
           flex-direction: row;
         }
-        .layout-portrait .image-area {
-          padding: 40px;
-          background-color: var(--bg-color);
+        .cover-visual {
+          flex: 1;
+          padding: 30px 40px;
         }
-        .layout-portrait .text-area {
+        .cover-section .film-window img {
+          max-height: 60vh;
+        }
+        .cover-info {
+          flex: none;
+          width: 420px;
+          height: 100%;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 60px;
+          border-left: 1px solid var(--line);
+          background: var(--surface);
+        }
+      }
+
+      /* ------------------------------------------------------------
+         照片页（Frame）
+      ------------------------------------------------------------ */
+      .photo-section {
+        display: flex;
+        flex-direction: column;
+      }
+      .photo-visual {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 72px 16px 12px;
+      }
+      .photo-visual .film-window img {
+        max-height: 58vh;
+      }
+
+      .photo-caption {
+        flex: none;
+        width: 100%;
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 16px 22px 40px;
+      }
+      .caption-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 10px;
+      }
+      .caption-roll {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        color: var(--accent);
+      }
+      .caption-meta {
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        color: var(--faint);
+      }
+      .photo-desc {
+        font-size: clamp(1.05rem, 2.6vw, 1.3rem);
+        line-height: 1.55;
+        font-weight: 500;
+        color: var(--ink);
+      }
+
+      @media (min-width: 768px) {
+        .is-portrait {
+          flex-direction: row;
+        }
+        .is-portrait .photo-visual {
+          flex: 1;
+          padding: 40px;
+        }
+        .is-portrait .film-strip {
+          width: min(48vh, 420px);
+        }
+        .is-portrait .photo-caption {
+          flex: none;
           width: 380px;
           height: 100%;
-          background: var(--panel-bg);
-          border-left: 1px solid rgba(255, 255, 255, 0.05);
+          margin: 0;
           display: flex;
           flex-direction: column;
           justify-content: center;
           padding: 48px;
+          border-left: 1px solid var(--line);
+          background: var(--surface);
         }
-        .layout-landscape .text-area {
+
+        .is-landscape .photo-caption {
           position: absolute;
-          bottom: 0;
           left: 0;
           right: 0;
-          padding-bottom: 48px;
+          bottom: 0;
+          max-width: none;
+          padding: 64px 30px 34px;
+          background: linear-gradient(
+            to top,
+            var(--paper) 52%,
+            rgba(230, 227, 221, 0)
+          );
         }
-        .photo-meta {
-          display: block;
-        }
-        .album-name {
-          color: var(--accent);
-          font-size: 11px;
-          text-transform: uppercase;
-          letter-spacing: 0.15em;
-        }
-        .photo-desc {
-          font-size: 15px;
-          color: #d4d4d8;
+        .is-landscape .photo-visual {
+          padding-bottom: 90px;
         }
       }
 
-      .footer-section {
+      /* ------------------------------------------------------------
+         空状态与页脚
+      ------------------------------------------------------------ */
+      .empty-section {
+        display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #0a0a0a;
+        text-align: center;
       }
-      .footer-section p {
-        font-family: monospace;
-        font-size: 12px;
-        letter-spacing: 0.2em;
-        color: #3f3f46;
-        text-transform: uppercase;
+      .empty-kicker {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 800;
+        font-size: clamp(2.2rem, 8vw, 4rem);
+        letter-spacing: 0.02em;
       }
-      
+      .empty-note {
+        margin-top: 14px;
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        color: var(--muted);
+      }
+
+      .footer-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--film);
+        color: var(--paper);
+      }
+      .footer-inner {
+        text-align: center;
+        padding: 0 24px;
+      }
+      .footer-end {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 800;
+        font-size: clamp(2.4rem, 10vw, 5rem);
+        line-height: 1;
+        letter-spacing: 0.02em;
+      }
+      .footer-note {
+        margin-top: 16px;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.3em;
+        color: #a89c86;
+      }
       .footer-beian {
-        padding: 20px 0;
+        margin-top: 36px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(230, 227, 221, 0.16);
       }
-      
       .beian-link {
-        font-family: monospace;
-        font-size: 12px;
-        letter-spacing: 0.2em;
-        color: #3f3f46;
-        text-transform: uppercase;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        color: #8a8070;
         text-decoration: none;
-        transition: color 0.3s ease;
+        transition: color 0.25s ease;
       }
-      
       .beian-link:hover {
-        color: #a1a1aa;
+        color: #fff;
+      }
+
+      /* ------------------------------------------------------------
+         无障碍：减少动态效果
+      ------------------------------------------------------------ */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+        .snap-container {
+          scroll-behavior: auto;
+        }
       }
     </style>
   </body>
