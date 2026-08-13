@@ -209,6 +209,7 @@ const pageTitle = "WANDER · Photography Log";
                         alt={album.name}
                         loading="lazy"
                         decoding="async"
+                        draggable={false}
                       />
                     </div>
                     <span class="edge-code">
@@ -249,6 +250,7 @@ const pageTitle = "WANDER · Photography Log";
                             decoding="async"
                             width={photo.width}
                             height={photo.height}
+                            draggable={false}
                           />
                         </div>
                         <span class="edge-code">
@@ -378,6 +380,14 @@ const pageTitle = "WANDER · Photography Log";
           }
         });
       });
+
+      // 简单的图片保护：禁止右键保存、拖拽与移动端长按菜单
+      document.addEventListener("contextmenu", (e) => {
+        if (e.target instanceof HTMLImageElement) e.preventDefault();
+      });
+      document.addEventListener("dragstart", (e) => {
+        if (e.target instanceof HTMLImageElement) e.preventDefault();
+      });
     </script>
 
     <style is:global>
@@ -429,6 +439,9 @@ const pageTitle = "WANDER · Photography Log";
 
       img {
         display: block;
+        -webkit-user-drag: none;
+        user-select: none;
+        -webkit-touch-callout: none;
       }
 
       ::selection {
