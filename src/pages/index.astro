@@ -1,585 +1,1177 @@
 ---
-// ==========================================
-// 1. 服务端数据处理 (Server-Side Logic)
-// ==========================================
-import axios from 'axios';
+import "@fontsource-variable/archivo/wdth.css";
+import "@fontsource/space-mono/400.css";
+import "@fontsource/space-mono/700.css";
+import axios from "axios";
 
-// 环境变量配置
-const API_BASE_URL = import.meta.env.API_BASE_URL;
-const IMAGE_URL = import.meta.env.IMAGE_URL;
-
-/**
- * 图片地址处理工具
- * @param {string} path - 图片路径/ID
- * @param {number} w - 宽度 (0 为原图)
- * @param {number} q - 质量 (默认 90)
- */
-function getImg(path, w = 0, q = 90) {
+// ----------------------------------------------------------------------
+// 工具函数
+// ----------------------------------------------------------------------
+function getImg(path: string, w: number = 0, q: number = 80) {
   if (!path) return "";
   if (path.startsWith("http")) return path;
-  if (!IMAGE_URL) return path;
-  
-  const clean = path.replace(/^\//, "");
-  if (!w) return `${IMAGE_URL}/${clean}`;
-  return `${IMAGE_URL}/cdn-cgi/image/width=${w},quality=${q},format=auto/${clean}`;
+  const cleanPath = path.replace(/^\//, "");
+  const imageUrl = import.meta.env.IMAGE_URL;
+  if (!imageUrl) return "";
+  if (!w) return `${imageUrl}/${cleanPath}`;
+  return `${imageUrl}/cdn-cgi/image/width=${w},quality=${q},format=auto/${cleanPath}`;
 }
 
-/**
- * 格式化日期工具: YYYY.MM.DD
- */
-function formatDate(isoString) {
-  if (!isoString) return "";
-  const date = new Date(isoString);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}.${m}.${d}`;
+function pad(n: number) {
+  return String(n).padStart(2, "0");
 }
 
-/**
- * 获取相册数据
- */
-async function fetchGallery() {
+// ----------------------------------------------------------------------
+// 数据获取与类型
+// ----------------------------------------------------------------------
+interface Photo {
+  _id: string;
+  albumId: string;
+  fileID: string;
+  description: string;
+  order: number;
+  width: number;
+  height: number;
+  isFeatured: boolean;
+}
+
+interface Album {
+  id: string;
+  photos: Photo[];
+  name: string;
+  description: string;
+  coverPhotoUrl: string;
+  order: number;
+}
+
+async function fetchAlbums(): Promise<Album[]> {
   try {
+    const API_BASE_URL = import.meta.env.API_BASE_URL;
     if (!API_BASE_URL) return [];
-    const res = await axios.get(`${API_BASE_URL}/api/albums/gallery/public`);
-    if (res.data.code !== 0) return [];
+    const response = await axios.get(
+      `${API_BASE_URL}/api/albums/gallery/public`,
+      { timeout: 8000 }
+    );
+    if (response.data.code !== 0) throw new Error(response.data.message);
 
-    return res.data.data.map((album, idx) => ({
-      id: album.id,
-      title: album.name,
-      desc: album.description || "Collection of visual moments.",
-      createTime: formatDate(album.createTime),
-      coverFull: getImg(album.coverPhotoUrl, 1200),
-      coverThumb: getImg(album.coverPhotoUrl, 800),
-      photos: (album.photos || []).map(p => ({
-        thumb: getImg(p.fileID, 800), 
-        full: getImg(p.fileID, 1200),
-        title: p.title || "Untitled", 
-      })),
-      index: idx
+    return response.data.data.map((album: any) => ({
+      ...album,
+      photos: album.photos || [],
     }));
-  } catch (e) {
-    console.error("Fetch Gallery Error:", e);
+  } catch (err: any) {
+    console.error("Data Fetch Error:", err.message);
     return [];
   }
 }
 
-// 执行数据获取
-const gallery = await fetchGallery();
+const albums: Album[] = await fetchAlbums();
+const totalFrames = albums.reduce(
+  (sum, album) => sum + (album.photos?.length ?? 0),
+  0
+);
+const pageTitle = "WANDER · Photography Log";
 ---
 
-<!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MYPIXELBOX | The Anthology</title>
-  
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#E6E3DD" />
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#log-start">跳到内容</a>
 
-  <style>
-    /* ==========================================
-       2. CSS 样式系统
-       ========================================== */
-    :root {
-      --bg: #0a0a0a;
-      --text-main: #e0e0e0;
-      --text-muted: #666;
-      --font-serif: 'Cormorant Garamond', serif;
-      --font-sans: 'Inter', sans-serif;
-    }
+    <!-- 顶部导航 -->
+    <header class="site-header">
+      <div class="brand">
+        <span class="brand-name">WANDER</span>
+        <span class="brand-sub">PHOTO LOG</span>
+      </div>
+      <button
+        id="menu-btn"
+        class="nav-btn"
+        aria-label="打开目录"
+        aria-expanded="false"
+        aria-controls="menu-overlay"
+      >
+        <span class="nav-btn-text">CONTACT SHEET</span>
+        <span class="nav-btn-icon" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+    </header>
 
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    html { scroll-behavior: smooth; }
-    
-    body {
-      background-color: var(--bg);
-      color: var(--text-main);
-      font-family: var(--font-sans);
-      overflow-x: hidden;
-      /* 噪点背景图 */
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    }
+    <!-- 目录（Contact Sheet） -->
+    <div
+      id="menu-overlay"
+      class="menu-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="CONTACT SHEET"
+    >
+      <div class="menu-scroll-wrapper">
+        <div class="menu-content">
+          <p class="menu-kicker">CONTACT SHEET · 目录</p>
+          <ul class="menu-list">
+            <li>
+              <button data-goto="intro" class="menu-link home-link">
+                <span class="menu-link-main">
+                  <span class="menu-name">INTRO</span>
+                  <span class="menu-num">00</span>
+                </span>
+                <span class="menu-count">开始</span>
+              </button>
+            </li>
+            {
+              albums.map((album, index) => (
+                <li>
+                  <button data-goto={`album-${album.id}`} class="menu-link">
+                    <span class="menu-link-main">
+                      <span class="menu-name">{album.name}</span>
+                      <span class="menu-num">ROLL {pad(index + 1)}</span>
+                    </span>
+                    <span class="menu-count">
+                      {album.photos.length} FRAMES
+                    </span>
+                  </button>
+                </li>
+              ))
+            }
+          </ul>
+          <p class="menu-foot">WANDER · SOME PHOTOGRAPHY LOG</p>
+        </div>
+      </div>
 
-    /* --- Top Navigation --- */
-    .nav-bar {
-      position: fixed; top: 0; left: 0; width: 100%; height: 80px;
-      padding: 0 40px;
-      display: flex; justify-content: space-between; align-items: center;
-      z-index: 500;
-      background: linear-gradient(to bottom, rgba(10,10,10,0.95), rgba(10,10,10,0));
-      pointer-events: none;
-    }
-    .brand {
-      pointer-events: auto;
-      font-family: var(--font-serif); font-size: 22px; font-weight: 600; letter-spacing: 1px; color: #fff;
-    }
-    .menu-btn {
-      pointer-events: auto; cursor: pointer;
-      font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
-      border: 1px solid rgba(255,255,255,0.2);
-      padding: 8px 18px; border-radius: 20px;
-      background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
-      transition: 0.3s; color: #ccc;
-    }
-    .menu-btn:hover { background: #fff; color: #000; }
+      <button id="close-menu" class="close-btn-fixed" aria-label="关闭目录">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
 
-    /* --- Index Overlay (Menu) --- */
-    .index-overlay {
-      position: fixed; inset: 0; z-index: 800;
-      background: rgba(5,5,5,0.98);
-      display: flex; flex-direction: column; justify-content: center;
-      opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
-    }
-    .index-overlay.active { opacity: 1; pointer-events: auto; }
-    .index-list {
-      list-style: none; padding: 0 40px;
-      max-height: 80vh; overflow-y: auto;
-      max-width: 800px; margin: 0 auto; width: 100%;
-    }
-    .index-item {
-      border-bottom: 1px solid #222; padding: 25px 0; cursor: pointer;
-      display: flex; justify-content: space-between; align-items: baseline;
-      transition: 0.3s; color: #888;
-    }
-    .index-item:hover { color: #fff; padding-left: 10px; border-color: #444; }
-    .index-item h3 { font-family: var(--font-serif); font-size: 1.8rem; font-weight: 300; margin-bottom: 5px; }
-    .index-meta { font-family: monospace; font-size: 12px; letter-spacing: 1px; color: #555; }
-    .index-close {
-      position: absolute; top: 30px; right: 40px;
-      font-size: 30px; cursor: pointer; color: #fff; padding: 10px;
-    }
-
-    /* --- Main Content --- */
-    main { padding-top: 100px; }
-    .chapter {
-      margin-bottom: 140px;
-      opacity: 0; transform: translateY(40px);
-      transition: 1s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-    .chapter.visible { opacity: 1; transform: translateY(0); }
-
-    .chapter-header {
-      padding: 0 60px 30px;
-      display: grid; grid-template-columns: 1fr auto; gap: 40px;
-      border-bottom: 1px solid #1a1a1a; margin-bottom: 30px;
-    }
-    .ch-title h2 { font-family: var(--font-serif); font-size: 3rem; font-weight: 300; color: #eee; }
-    .ch-meta { font-size: 11px; letter-spacing: 2px; color: #555; text-transform: uppercase; margin-top: 10px; font-family: monospace;}
-    .ch-desc { font-family: var(--font-serif); font-size: 1.1rem; color: #888; font-style: italic; max-width: 400px; text-align: right;}
-
-    /* --- Horizontal Stream --- */
-    .stream {
-      display: flex; gap: 40px;
-      padding: 0 60px 40px;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      scrollbar-width: none;
-    }
-    .stream::-webkit-scrollbar { display: none; }
-
-    .card {
-      flex: 0 0 auto; scroll-snap-align: center;
-      display: flex; flex-direction: column; gap: 12px;
-    }
-    .card.is-cover { margin-right: 40px; position: relative; }
-    .card.is-cover::after {
-      content: ""; position: absolute; right: -30px; top: 10%; height: 80%;
-      border-right: 1px solid #222;
-    }
-    .cover-badge {
-      position: absolute; top: 12px; left: 12px;
-      background: #fff; color: #000;
-      font-size: 9px; font-weight: 700; padding: 3px 6px;
-      letter-spacing: 1px; z-index: 10; pointer-events: none;
-    }
-
-    .card-img-box {
-      height: 50vh; overflow: hidden; background: #111; cursor: zoom-in;
-      transition: filter 0.3s;
-    }
-    .card-img-box img {
-      height: 100%; width: auto; display: block;
-      transition: transform 0.6s ease;
-      filter: brightness(0.9);
-    }
-    .card:hover .card-img-box img { transform: scale(1.02); filter: brightness(1); }
-    
-    .caption {
-      font-size: 10px; color: #555; letter-spacing: 1px;
-      max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      text-transform: uppercase;
-    }
-
-    /* --- Lightbox --- */
-    .lightbox {
-      position: fixed; inset: 0; z-index: 999;
-      background: #000;
-      display: none; opacity: 0; transition: opacity 0.3s ease;
-      flex-direction: column; justify-content: center;
-    }
-    .lightbox.active { display: flex; opacity: 1; }
-
-    .lb-stage {
-      flex: 1; display: flex; align-items: center; justify-content: center;
-      position: relative; width: 100%; overflow: hidden;
-    }
-    .lb-img {
-      max-width: 100%; max-height: 100%;
-      object-fit: contain;
-      opacity: 0; transform: scale(0.98);
-      transition: opacity 0.4s ease, transform 0.4s ease;
-      user-select: none;
-    }
-    .lb-img.show { opacity: 1; transform: scale(1); }
-
-    .lb-top-bar {
-      position: absolute; top: 0; left: 0; width: 100%; height: 60px;
-      display: flex; justify-content: flex-end; align-items: center;
-      padding: 0 20px; z-index: 1001;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.5), transparent);
-    }
-    .lb-close {
-      color: #fff; font-size: 32px; cursor: pointer;
-      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-      text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-    }
-    
-    .lb-bottom-bar {
-      position: absolute; bottom: 0; left: 0; width: 100%; height: 60px;
-      display: flex; justify-content: center; align-items: center;
-      z-index: 1001; pointer-events: none;
-    }
-    .lb-counter {
-      color: #aaa; font-size: 12px; font-family: monospace; letter-spacing: 2px;
-      background: rgba(0,0,0,0.5); padding: 5px 12px; border-radius: 12px;
-      backdrop-filter: blur(4px);
-    }
-
-    .lb-nav-zone {
-      position: absolute; top: 10%; bottom: 10%; width: 25%;
-      z-index: 1000; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .lb-prev-zone { left: 0; }
-    .lb-next-zone { right: 0; }
-    
-    .lb-arrow {
-      color: #fff; font-size: 40px; opacity: 0; transition: opacity 0.3s;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
-    }
-    @media (min-width: 769px) {
-      .lb-nav-zone:hover .lb-arrow { opacity: 1; }
-    }
-    
-    .spinner {
-      position: absolute; border: 2px solid rgba(255,255,255,0.1);
-      border-top: 2px solid #fff; border-radius: 50%;
-      width: 30px; height: 30px; animation: spin 0.8s linear infinite;
-      display: none;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-    /* --- Footer & Beian --- */
-    footer {
-      width: 100%;
-      padding: 80px 20px 40px;
-      background: linear-gradient(to top, #050505, transparent);
-      display: flex; justify-content: center;
-      border-top: 1px solid rgba(255, 255, 255, 0.03);
-    }
-    .footer-content {
-      display: flex; flex-direction: column; align-items: center;
-      gap: 12px; font-family: var(--font-sans);
-    }
-    .copyright {
-      font-size: 12px; color: #444; letter-spacing: 0.5px; margin-bottom: 4px;
-    }
-    .beian-group {
-      display: flex; align-items: center; gap: 15px;
-      flex-wrap: wrap; justify-content: center;
-    }
-    .beian-item {
-      display: flex; align-items: center;
-      text-decoration: none; font-size: 11px;
-      color: #555; transition: color 0.3s ease; letter-spacing: 0.5px;
-    }
-    .beian-item:hover { color: #aaa; }
-    .police-icon {
-      width: 14px; height: 14px; margin-right: 5px;
-      opacity: 0.6; transition: opacity 0.3s ease;
-    }
-    .beian-item:hover .police-icon { opacity: 1; }
-    .separator { color: #333; font-size: 10px; display: inline-block; }
-
-    /* --- Mobile Responsive --- */
-    @media (max-width: 768px) {
-      .nav-bar { padding: 0 20px; }
-      .index-list { padding: 0 20px; }
-      .chapter-header { padding: 0 20px 20px; grid-template-columns: 1fr; gap: 10px; text-align: left; }
-      .ch-desc { text-align: left; max-width: 100%; font-size: 1rem; }
-      .stream { padding: 0 20px 20px; gap: 15px; }
-      .card.is-cover { margin-right: 15px; }
-      .card.is-cover::after { display: none; }
-      .card-img-box { height: 55vh; max-width: 88vw; }
-      .card-img-box img { width: 100%; height: 100%; object-fit: cover; }
-      .ch-title h2 { font-size: 2.2rem; }
-      
-      /* Footer Mobile */
-      footer { padding-bottom: 60px; }
-      .footer-content { gap: 15px; }
-      .beian-group { flex-direction: column; gap: 8px; }
-      .separator { display: none; }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Navigation -->
-  <nav class="nav-bar">
-    <div class="brand">MYPIXELBOX</div>
-    <div class="menu-btn" onclick="toggleMenu()">Index</div>
-  </nav>
-
-  <!-- Overlay Menu -->
-  <div id="index-overlay" class="index-overlay">
-    <div class="index-close" onclick="toggleMenu()">×</div>
-    <ul class="index-list">
-      {gallery.map((album, idx) => (
-        <li class="index-item" onclick={`scrollToAlbum(${idx})`}>
-          <h3>{album.title}</h3>
-          <div class="index-meta">{album.createTime} · {album.photos.length} Frames</div>
-        </li>
-      ))}
-    </ul>
-  </div>
-
-  <!-- Main Feed -->
-  <main>
-    {gallery.map((album, aIdx) => (
-      <section class="chapter" id={`album-${aIdx}`}>
-        <!-- Chapter Header -->
-        <div class="chapter-header">
-          <div class="ch-title">
-            <h2>{album.title}</h2>
-            <div class="ch-meta">{album.createTime} &nbsp;/&nbsp; VOL.{aIdx + 1}</div>
-          </div>
-          <div class="ch-desc">{album.desc}</div>
+    <!-- 主内容 -->
+    <main id="log-start" class="snap-container">
+      <section id="intro" class="snap-section intro-section">
+        <div class="intro-meta">
+          <span>LOG Nº 001</span>
+          <span>{pad(albums.length)} ROLLS · {pad(totalFrames)} FRAMES</span>
         </div>
 
-        <!-- Horizontal Scroll Stream -->
-        <div class="stream" id={`track-${aIdx}`}>
-          <!-- Cover Card -->
-          <div class="card is-cover" onclick={`openLightbox(${aIdx}, -1)`}>
-            <div class="card-img-box">
-              <div class="cover-badge">COVER</div>
-              <img src={album.coverThumb} loading="lazy" alt="Cover" />
-            </div>
-            <div class="caption">The Cover</div>
+        <div class="intro-content">
+          <h1>WANDER</h1>
+          <p class="intro-sub">SOME PHOTOGRAPHY LOG</p>
+          <div class="safelight">
+            <span class="safelight-dot" aria-hidden="true"></span>
+            SAFELIGHT ON
           </div>
+        </div>
 
-          <!-- Photo Cards -->
-          {album.photos.map((photo, pIdx) => (
-            <div class="card" onclick={`openLightbox(${aIdx}, ${pIdx})`}>
-              <div class="card-img-box">
-                <img src={photo.thumb} loading="lazy" alt={photo.title} />
-              </div>
-              <div class="caption">{photo.title}</div>
-            </div>
-          ))}
-          <div style="flex:0 0 20px"></div>
+        <p class="scroll-cue" aria-hidden="true">SCROLL</p>
+        <div class="intro-strip" aria-hidden="true">
+          <div class="sprockets"></div>
+          <span class="edge-code">WANDER · 35MM · SOME PHOTOGRAPHY LOG</span>
+          <div class="sprockets"></div>
         </div>
       </section>
-    ))}
-  </main>
 
-  <!-- Footer -->
-  <footer>
-    <div class="footer-content">
-      <div class="copyright">
-        &copy; {new Date().getFullYear()} MYPIXELBOX. All Rights Reserved.
-      </div>
-      
-      <div class="beian-group">
-        <!-- ICP -->
-        <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" class="beian-item">
-          浙ICP备2025208482号-2
-        </a>
-        
-        <span class="separator">|</span>
-
-        <!-- 公网安备 -->
-        <a href="https://beian.mps.gov.cn/#/query/webSearch?code=33010602014222" target="_blank" rel="noopener" class="beian-item">
-          <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAoCAYAAACWwljjAAAFQklEQVRYw+3Wa1BUdRjH8SOpMeg4WhZGpDIxiaaTeUFgWrxE4AVRQJGlRRAVIV1JkbgMgQLi5AVBQSVLSp0xlEAUKBEEFZCrCstll8UV2AV2YbmoGCrYv31+R95UL5pmmtamZ+bz6rz5nvOc/5zDcX9jGLs/iTxuyvIlWYkRFeTHA2HVRFtzfhthTG5KuH96/vUgNlC4mMgyw1NJit/aAXLKazYje9xtIMZ/OZz50gW+9hcNkvoLEemEPbnrSP47QYwxQ5Ifv54RqzcXwFFvSyjaOhfavN8F7Y5ZcC/HH9JOB4LNa9Zw5YA76OZV8vIGMdZtSp7cDrtOnOavYiQhTAiPwi1AMtIQaqyngsxpBtw2GAGDKfaQmpUAa6xc4Vfp4UtEdzAMycsT9JQ1Tyctl/2eEkuTlYysF/rCUNxMqDEzgTqzSXBnpgnIHCzgjvEEuD52DLBr3rA1MAaWmNtB582wdtIljZ9G9D+IPU6aTxIPBjHCcXvg3CEh9K2fDLWvjIH6D6fwTIyheuwEqLUyhzLOALq8pkN+bgRw3HY4FBsMzxojZxP9DequLjAlQwVrbpIjhyIY4UYGQ/buhdBqPxlk3Gion2IMDQIz3kJe/ZS34I7uHkmD7VSQVgYDNyIAwsNCgfXGXoOBPjP9DKrOCAogA2etGTmTHAMcFwFZye7wS5QlVHGjoEw4A2qPCUBZ6AzNcQ5Q/YYRdO+YB1U3dsDwypLio4FJ3ECryIzWz6Cm3NgTRHN8HiPF6eHAGSbAdh8feFZkB7krzaHE9h2o85sDsiAbkIsXQMN+e2CtGyF0kzdwXCgU5++D/ouLQFV4OEU/g2Q/iNuIPNaKkQflAWBqexxGjhLDVUcL6IwSQN3SGVChe6FJg9dckCx6D1QBliDZLIAxo7eA8eyv4KE0BJqTrHkZvnL9DJKn+Twmt0NsGGHZy2Dn3kQYfsQ53Hh4/r4RNGz8AIpdzKEuaAF0RC2E57MmQgE3ATjuM/CPiANW7AqSfQJQ5vk362eQKmd3JrmXsoSRocpNIMnbB9zbceDIWUPmuHFQNMkISqa9DpUvNK6YDpW2s8DfwBK48WFQnhMCgzUBoLy0BrRVe5P0NWjPLdKUsJiR1tR1wGp8IeZwMgx/SrgRvjxuAziNcwLvyathLOcJHLflhRDYGRYFrNET2rJ5yvPLoas0tOj/oL8UpC4JHyTSU+6MNCS4gvKoAB5WiKG+MAQSg0WwLXQ/ZJ3xhao0FxB5hYCbUwAEfhEF3Td8QP2dAOQnPwFlxgrolUVq9TPoaX+ZB2nLc2Gk6awj1MU78HZZwJMid2Byb550JQwVO0NfxlJgdz14vWKeRAiK6DlQF28PLZdcoLNcBIO92bb6GTQ8Q/13RURT6tlH2gvXMlITLYD6uI+gp2ozdF0VQXumM6ivCqGvahM8kPiDItkeGo8tB025GFQ3xFrSr06zI3/4yde7oN7m0sWk5eKWDqK5JWJQvAHac9ygq3Adr9gTNNc3QG85rzPfHe5/7wDtPwuhp/Zz6CjyhaZzwi6ivfetHdH/oP77+3PJQOsuRnqkQdCa4wWqyx6gyecpL64GTaEX7ycXUJz4GJp1B4O0X/Hg0Xp1tFV+8Ei1k6c5coHofxBrrzQinbKYo0SVJ+wn6iurGHlY5gY911aDJnMFaHXXiDp9GQyvtKfUA9QFTtBZ7gPdit0tpFd9OpwwFmlA9D/o9yNLDpxIKmI8PMnNSNtviCLVpYTITzrXEGWaq4qos0WgOPdpCenIF+eRrurjB4k0PXopYZG6gMg/D/gNBUxhAbSAmKMAAAAASUVORK5CYII=" alt="备案图标" class="police-icon">
-          <span>浙公网安备 33010602014222号</span>
-        </a>
-      </div>
-    </div>
-  </footer>
-
-  <!-- Lightbox -->
-  <div id="lightbox" class="lightbox">
-    <div class="lb-top-bar">
-      <div class="lb-close" onclick="closeLightbox()">&times;</div>
-    </div>
-
-    <div class="lb-stage" id="lb-stage">
-      <div class="spinner" id="lb-spinner"></div>
-      <img id="lb-img" class="lb-img" src="" alt="Detail View" />
-      
-      <div class="lb-nav-zone lb-prev-zone" onclick="changePhoto(event, -1)">
-        <div class="lb-arrow">&#8249;</div>
-      </div>
-      <div class="lb-nav-zone lb-next-zone" onclick="changePhoto(event, 1)">
-        <div class="lb-arrow">&#8250;</div>
-      </div>
-    </div>
-
-    <div class="lb-bottom-bar">
-      <div class="lb-counter" id="lb-counter"></div>
-    </div>
-  </div>
-
-  <!-- Client Side Script -->
-  <script is:inline define:vars={{ clientData: gallery }}>
-    // --- Menu Control ---
-    const menu = document.getElementById('index-overlay');
-    window.toggleMenu = function() {
-      menu.classList.toggle('active');
-      document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
-    };
-
-    window.scrollToAlbum = function(idx) {
-      toggleMenu();
-      const el = document.getElementById(`album-${idx}`);
-      if(el) {
-        const y = el.getBoundingClientRect().top + window.pageYOffset - 100;
-        window.scrollTo({top: y, behavior: 'smooth'});
-      }
-    };
-
-    // --- Intersection Observer (Fade in) ---
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
-    }, { threshold: 0.1 });
-    document.querySelectorAll('.chapter').forEach(el => observer.observe(el));
-
-    // --- Horizontal Wheel Scroll ---
-    document.querySelectorAll('.stream').forEach(track => {
-      track.addEventListener('wheel', e => {
-        if(e.deltaY !== 0) { e.preventDefault(); track.scrollLeft += e.deltaY; }
-      }, { passive: false });
-    });
-
-    // --- Lightbox Logic ---
-    const lb = document.getElementById('lightbox');
-    const lbImg = document.getElementById('lb-img');
-    const lbSpinner = document.getElementById('lb-spinner');
-    const lbCounter = document.getElementById('lb-counter');
-    const albums = clientData;
-
-    let currentAIdx = 0;
-    let currentPIdx = 0;
-
-    window.openLightbox = function(aIdx, pIdx) {
-      currentAIdx = aIdx;
-      currentPIdx = pIdx;
-      updateLbImage(false);
-      lb.style.display = 'flex';
-      // Force Reflow
-      lb.offsetHeight;
-      lb.classList.add('active');
-      document.body.style.overflow = 'hidden';
-    };
-
-    window.closeLightbox = function() {
-      lb.classList.remove('active');
-      setTimeout(() => {
-        lb.style.display = 'none';
-        lbImg.src = '';
-        document.body.style.overflow = '';
-      }, 300);
-    };
-
-    window.changePhoto = function(e, dir) {
-      if(e) e.stopPropagation();
-      const photosCount = albums[currentAIdx].photos.length;
-      let next = currentPIdx + dir;
-      
-      // Wrap around logic including cover (index -1)
-      if (next < -1) next = photosCount - 1; 
-      if (next >= photosCount) next = -1;
-      
-      currentPIdx = next;
-      updateLbImage(true);
-    };
-
-    function updateLbImage(animate) {
-      const album = albums[currentAIdx];
-      let src = "";
-      let label = "";
-
-      if (currentPIdx === -1) {
-        src = album.coverFull;
-        label = "COVER";
-      } else {
-        const photo = album.photos[currentPIdx];
-        src = photo.full;
-        label = `${currentPIdx + 1} / ${album.photos.length}`;
+      {
+        albums.map((album, index) => (
+          <>
+            {album.coverPhotoUrl && (
+              <section
+                id={`album-${album.id}`}
+                class="snap-section cover-section"
+              >
+                <div class="cover-visual">
+                  <figure class="film-strip">
+                    <div class="sprockets" aria-hidden="true"></div>
+                    <div class="film-window">
+                      <img
+                        src={getImg(album.coverPhotoUrl, 1600)}
+                        alt={album.name}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                    <span class="edge-code">
+                      WANDER · ROLL {pad(index + 1)}
+                    </span>
+                    <div class="sprockets" aria-hidden="true"></div>
+                  </figure>
+                </div>
+                <div class="cover-info">
+                  <p class="roll-label">ROLL {pad(index + 1)}</p>
+                  <h2>{album.name}</h2>
+                  {album.description && (
+                    <p class="cover-desc">{album.description}</p>
+                  )}
+                  <p class="cover-count">
+                    {album.photos.length} FRAMES
+                  </p>
+                </div>
+              </section>
+            )}
+            {
+              album.photos.map((photo, photoIndex) => {
+                const isPortrait = photo.height > photo.width;
+                return (
+                  <section
+                    class={`snap-section photo-section ${
+                      isPortrait ? "is-portrait" : "is-landscape"
+                    }`}
+                  >
+                    <div class="photo-visual">
+                      <figure class="film-strip">
+                        <div class="sprockets" aria-hidden="true"></div>
+                        <div class="film-window">
+                          <img
+                            src={getImg(photo.fileID, 1600)}
+                            alt={photo.description || album.name}
+                            loading="lazy"
+                            decoding="async"
+                            width={photo.width}
+                            height={photo.height}
+                          />
+                        </div>
+                        <span class="edge-code">
+                          WANDER · ROLL {pad(index + 1)} · FRAME{" "}
+                          {pad(photoIndex + 1)}
+                        </span>
+                        <div class="sprockets" aria-hidden="true"></div>
+                      </figure>
+                    </div>
+                    <div class="photo-caption">
+                      <div class="caption-head">
+                        <span class="caption-roll">
+                          ROLL {pad(index + 1)} / FRAME {pad(photoIndex + 1)}
+                        </span>
+                        <span class="caption-meta">
+                          {photo.width} × {photo.height}
+                        </span>
+                      </div>
+                      {photo.description && (
+                        <p class="photo-desc">{photo.description}</p>
+                      )}
+                    </div>
+                  </section>
+                );
+              })
+            }
+          </>
+        ))
       }
 
-      lbCounter.innerText = label;
-      
-      if(animate) {
-        lbImg.classList.remove('show');
-        lbSpinner.style.display = 'block';
+      {
+        albums.length === 0 && (
+          <section class="snap-section empty-section">
+            <div class="empty-inner">
+              <p class="empty-kicker">NO ROLLS YET</p>
+              <p class="empty-note">相册正在冲洗中，连接数据后会自动出现。</p>
+            </div>
+          </section>
+        )
       }
 
-      const temp = new Image();
-      temp.src = src;
-      temp.onload = () => {
-        lbImg.src = src;
-        lbSpinner.style.display = 'none';
-        lbImg.classList.add('show');
-      };
-    }
+      <footer class="snap-section footer-section">
+        <div class="footer-inner">
+          <p class="footer-end">END OF LOG</p>
+          <p class="footer-note">完 · 感谢观看</p>
+          <p class="footer-copyright">
+            © {new Date().getFullYear()} MYPIXELBOX. All Rights Reserved.
+          </p>
+          <div class="footer-links">
+            <a
+              href="https://beian.miit.gov.cn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="beian-link"
+              >浙ICP备2025208482号-2</a
+            >
+            <span class="footer-sep" aria-hidden="true">|</span>
+            <a
+              href="https://beian.mps.gov.cn/#/query/webSearch?code=33010602014222"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="beian-link"
+            >
+              <img
+                src="/police-icon.png"
+                alt=""
+                width="14"
+                height="14"
+                class="police-icon"
+              />
+              浙公网安备 33010602014222号
+            </a>
+          </div>
+        </div>
+      </footer>
+    </main>
 
-    // --- Swipe & Keyboard Navigation ---
-    let touchStartX = 0;
-    let touchStartY = 0;
-    const stage = document.getElementById('lightbox');
+    <script>
+      const menuBtn = document.getElementById("menu-btn");
+      const overlay = document.getElementById("menu-overlay");
+      const closeMenuBtn = document.getElementById("close-menu");
+      const menuLinks = document.querySelectorAll(".menu-link");
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
 
-    stage.addEventListener('touchstart', e => {
-      touchStartX = e.changedTouches[0].screenX;
-      touchStartY = e.changedTouches[0].screenY;
-    }, {passive: true});
+      function openMenu() {
+        overlay?.classList.add("active");
+        menuBtn?.setAttribute("aria-expanded", "true");
+        closeMenuBtn?.focus();
+      }
 
-    stage.addEventListener('touchend', e => {
-      const touchEndX = e.changedTouches[0].screenX;
-      const touchEndY = e.changedTouches[0].screenY;
-      const diffX = touchEndX - touchStartX;
-      const diffY = touchEndY - touchStartY;
+      function closeMenu() {
+        overlay?.classList.remove("active");
+        menuBtn?.setAttribute("aria-expanded", "false");
+        menuBtn?.focus();
+      }
 
-      if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (Math.abs(diffX) > 40) {
-          if (diffX < 0) changePhoto(null, 1); // Swipe Left -> Next
-          else changePhoto(null, -1);          // Swipe Right -> Prev
+      function toggleMenu() {
+        if (overlay?.classList.contains("active")) {
+          closeMenu();
+        } else {
+          openMenu();
         }
-      } else {
-        if (Math.abs(diffY) > 60) closeLightbox(); // Swipe Up/Down -> Close
       }
-    }, {passive: true});
 
-    document.addEventListener('keydown', e => {
-      if(!lb.classList.contains('active')) return;
-      if(e.key === 'Escape') closeLightbox();
-      if(e.key === 'ArrowRight') changePhoto(null, 1);
-      if(e.key === 'ArrowLeft') changePhoto(null, -1);
-    });
-  </script>
-</body>
+      menuBtn?.addEventListener("click", toggleMenu);
+      closeMenuBtn?.addEventListener("click", closeMenu);
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && overlay?.classList.contains("active")) {
+          closeMenu();
+        }
+      });
+
+      menuLinks.forEach((link) => {
+        link.addEventListener("click", () => {
+          // @ts-ignore
+          const targetId = link.dataset.goto;
+          const targetElement = document.getElementById(targetId);
+          if (targetElement) {
+            closeMenu();
+            targetElement.scrollIntoView({
+              behavior: reduceMotion ? "auto" : "smooth",
+              block: "start",
+            });
+          }
+        });
+      });
+    </script>
+
+    <style is:global>
+      :root {
+        --paper: #e6e3dd;
+        --surface: #efede8;
+        --paper-deep: #d9d6ce;
+        --ink: #201d18;
+        --muted: #6f6b62;
+        --faint: #a6a29a;
+        --line: #cfcbc2;
+        --grid-line: rgba(32, 29, 24, 0.055);
+        --film: #26221b;
+        --film-ink: #0f0d09;
+        --accent: #c74e24;
+        --mono: "Space Mono", ui-monospace, "SF Mono", "Cascadia Mono",
+          Consolas, monospace;
+        --display: "Archivo Variable", "Arial Narrow", Bahnschrift,
+          "PingFang SC", "Microsoft YaHei", sans-serif;
+        --body: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system,
+          sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        scrollbar-width: none;
+      }
+
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--body);
+        overflow: hidden;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: inherit;
+        font: inherit;
+      }
+
+      img {
+        display: block;
+      }
+
+      ::selection {
+        background: var(--accent);
+        color: var(--paper);
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+
+      .skip-link {
+        position: fixed;
+        top: -100px;
+        left: 16px;
+        z-index: 200;
+        padding: 10px 14px;
+        background: var(--ink);
+        color: var(--paper);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-decoration: none;
+        transition: top 0.2s ease;
+      }
+      .skip-link:focus {
+        top: 16px;
+      }
+
+      /* ------------------------------------------------------------
+         Snap 容器
+      ------------------------------------------------------------ */
+      .snap-container {
+        height: 100vh;
+        height: 100dvh;
+        width: 100vw;
+        overflow-y: scroll;
+        scroll-snap-type: y mandatory;
+        scroll-behavior: smooth;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .snap-container::-webkit-scrollbar {
+        display: none;
+      }
+      .snap-section {
+        height: 100vh;
+        height: 100dvh;
+        width: 100vw;
+        scroll-snap-align: start;
+        scroll-snap-stop: always;
+        position: relative;
+        overflow: hidden;
+        background: var(--paper);
+      }
+
+      /* ------------------------------------------------------------
+         顶部导航
+      ------------------------------------------------------------ */
+      .site-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 80;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 22px;
+        pointer-events: none;
+      }
+      .site-header > * {
+        pointer-events: auto;
+      }
+
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+      .brand-name {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 800;
+        font-size: 21px;
+        line-height: 1;
+        letter-spacing: 0.04em;
+      }
+      .brand-sub {
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.28em;
+        color: var(--muted);
+      }
+
+      .nav-btn {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 10px 12px 10px 16px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(230, 227, 221, 0.72);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        transition:
+          border-color 0.25s ease,
+          background 0.25s ease;
+      }
+      .nav-btn:hover {
+        border-color: var(--ink);
+        background: rgba(230, 227, 221, 0.95);
+      }
+      .nav-btn-text {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+      }
+      .nav-btn:hover .nav-btn-text {
+        color: var(--ink);
+      }
+      .nav-btn-icon {
+        display: grid;
+        width: 20px;
+        height: 20px;
+        place-items: center;
+        gap: 4px;
+      }
+      .nav-btn-icon span {
+        display: block;
+        width: 18px;
+        height: 1.5px;
+        background: var(--ink);
+      }
+
+      @media (max-width: 560px) {
+        .nav-btn-text {
+          display: none;
+        }
+        .brand-sub {
+          display: none;
+        }
+      }
+
+      /* ------------------------------------------------------------
+         目录（Contact Sheet）
+      ------------------------------------------------------------ */
+      .menu-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        background: var(--film);
+        color: var(--paper);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+          opacity 0.35s ease,
+          visibility 0.35s ease;
+      }
+      .menu-overlay.active {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      .menu-scroll-wrapper {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 90px 24px 120px;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .menu-scroll-wrapper::-webkit-scrollbar {
+        display: none;
+      }
+
+      .menu-content {
+        margin: auto;
+        width: 100%;
+        max-width: 760px;
+      }
+      .menu-kicker {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 34px;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.26em;
+        color: #a89c86;
+      }
+      .menu-kicker::before {
+        content: "";
+        width: 30px;
+        height: 1px;
+        background: var(--accent);
+      }
+
+      .menu-list {
+        list-style: none;
+        border-top: 1px solid rgba(230, 227, 221, 0.16);
+      }
+      .menu-link {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 18px;
+        width: 100%;
+        padding: 20px 4px;
+        border-bottom: 1px solid rgba(230, 227, 221, 0.16);
+        color: #cfc7b8;
+        text-align: left;
+        transition:
+          color 0.25s ease,
+          padding-left 0.25s ease;
+      }
+      .menu-link:hover {
+        color: #fff;
+        padding-left: 14px;
+      }
+      .menu-link-main {
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+        min-width: 0;
+      }
+      .menu-name {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 650;
+        font-size: clamp(1.35rem, 4.5vw, 2.1rem);
+        line-height: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .menu-num {
+        flex: none;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        color: var(--accent);
+      }
+      .menu-count {
+        flex: none;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.16em;
+        color: #8a8070;
+      }
+      .menu-link:hover .menu-count {
+        color: #bdb2a0;
+      }
+
+      .menu-foot {
+        margin-top: 34px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.3em;
+        color: #6f6759;
+        text-align: center;
+      }
+
+      .close-btn-fixed {
+        position: fixed;
+        top: 20px;
+        right: 22px;
+        z-index: 100;
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border: 1px solid rgba(230, 227, 221, 0.28);
+        border-radius: 50%;
+        color: var(--paper);
+        transition:
+          border-color 0.25s ease,
+          color 0.25s ease,
+          transform 0.25s ease;
+      }
+      .close-btn-fixed:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        transform: rotate(90deg);
+      }
+
+      /* ------------------------------------------------------------
+         负片条（Signature）
+      ------------------------------------------------------------ */
+      .sprockets {
+        height: 9px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='9' viewBox='0 0 22 9'%3E%3Crect x='2' y='1' width='7' height='7' rx='2' fill='%23E6E3DD'/%3E%3C/svg%3E");
+        background-repeat: repeat-x;
+        background-size: 22px 9px;
+      }
+
+      .film-strip {
+        display: block;
+        width: min(88vw, 900px);
+        max-width: 100%;
+        padding: 12px 14px 14px;
+        background: var(--film);
+        box-shadow: 0 34px 70px -34px rgba(20, 17, 11, 0.5);
+      }
+      .film-strip > .sprockets:first-child {
+        margin-bottom: 8px;
+      }
+      .film-strip > .sprockets:last-child {
+        margin-top: 8px;
+      }
+
+      .film-window {
+        background: var(--film-ink);
+        padding: 2px;
+      }
+      .film-window img {
+        width: 100%;
+        height: auto;
+        max-height: 56vh;
+        object-fit: contain;
+      }
+
+      .edge-code {
+        display: block;
+        margin: 8px 0 10px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        color: #a29480;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* ------------------------------------------------------------
+         Intro
+      ------------------------------------------------------------ */
+      .intro-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        background-image:
+          linear-gradient(var(--grid-line) 1px, transparent 1px),
+          linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+        background-size: 72px 72px;
+      }
+
+      .intro-meta {
+        position: absolute;
+        top: 74px;
+        left: 24px;
+        right: 24px;
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+      }
+
+      .intro-content {
+        position: relative;
+        z-index: 2;
+        padding-bottom: 110px;
+      }
+      .intro-content h1 {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 850;
+        font-size: clamp(4.2rem, 20vw, 12.5rem);
+        line-height: 0.9;
+        letter-spacing: -0.015em;
+        animation: intro-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.05s both;
+      }
+      .intro-sub {
+        margin-top: 26px;
+        font-family: var(--mono);
+        font-size: clamp(10px, 1.4vw, 12px);
+        letter-spacing: 0.34em;
+        color: var(--muted);
+        animation: intro-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+      }
+      .safelight {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 26px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.3em;
+        color: var(--accent);
+        animation: intro-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0.25s both;
+      }
+      .safelight-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: blip 2.4s ease-in-out infinite;
+      }
+
+      .scroll-cue {
+        position: absolute;
+        right: 28px;
+        bottom: 92px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.32em;
+        color: var(--muted);
+        writing-mode: vertical-rl;
+      }
+      @media (max-width: 760px) {
+        .scroll-cue {
+          display: none;
+        }
+      }
+
+      .intro-strip {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+        padding: 10px 14px;
+        background: var(--film);
+      }
+      .intro-strip .edge-code {
+        margin: 8px 0 10px;
+      }
+
+      @keyframes intro-rise {
+        from {
+          opacity: 0;
+          transform: translateY(18px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes blip {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.25;
+        }
+      }
+
+      /* ------------------------------------------------------------
+         相册封面（Roll 头）
+      ------------------------------------------------------------ */
+      .cover-section {
+        display: flex;
+        flex-direction: column;
+      }
+      .cover-visual {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 70px 20px 16px;
+      }
+      .cover-section .film-strip {
+        width: min(84vw, 760px);
+      }
+      .cover-section .film-window img {
+        max-height: 52vh;
+      }
+
+      .cover-info {
+        flex: none;
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 12px 24px 44px;
+      }
+      .roll-label {
+        margin-bottom: 10px;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.26em;
+        color: var(--accent);
+      }
+      .cover-info h2 {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 750;
+        font-size: clamp(2rem, 8vw, 3.4rem);
+        line-height: 1;
+        letter-spacing: 0.01em;
+        margin-bottom: 14px;
+        text-transform: uppercase;
+      }
+      .cover-desc {
+        max-width: 52ch;
+        font-size: 14px;
+        line-height: 1.75;
+        color: var(--muted);
+      }
+      .cover-count {
+        margin-top: 16px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.2em;
+        color: var(--faint);
+      }
+
+      @media (min-width: 768px) {
+        .cover-section {
+          flex-direction: row;
+        }
+        .cover-visual {
+          flex: 1;
+          padding: 30px 40px;
+        }
+        .cover-section .film-window img {
+          max-height: 60vh;
+        }
+        .cover-info {
+          flex: none;
+          width: 420px;
+          height: 100%;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 60px;
+          border-left: 1px solid var(--line);
+          background: var(--surface);
+        }
+      }
+
+      /* ------------------------------------------------------------
+         照片页（Frame）
+      ------------------------------------------------------------ */
+      .photo-section {
+        display: flex;
+        flex-direction: column;
+      }
+      .photo-visual {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 72px 16px 12px;
+      }
+      .photo-visual .film-window img {
+        max-height: 58vh;
+      }
+
+      .photo-caption {
+        flex: none;
+        width: 100%;
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 16px 22px 40px;
+      }
+      .caption-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 10px;
+      }
+      .caption-roll {
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        color: var(--accent);
+      }
+      .caption-meta {
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        color: var(--faint);
+      }
+      .photo-desc {
+        font-size: clamp(1.05rem, 2.6vw, 1.3rem);
+        line-height: 1.55;
+        font-weight: 500;
+        color: var(--ink);
+      }
+
+      @media (min-width: 768px) {
+        .is-portrait {
+          flex-direction: row;
+        }
+        .is-portrait .photo-visual {
+          flex: 1;
+          padding: 40px;
+        }
+        .is-portrait .film-strip {
+          width: min(48vh, 420px);
+        }
+        .is-portrait .photo-caption {
+          flex: none;
+          width: 380px;
+          height: 100%;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 48px;
+          border-left: 1px solid var(--line);
+          background: var(--surface);
+        }
+
+        .is-landscape .photo-caption {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          max-width: none;
+          padding: 64px 30px 34px;
+          background: linear-gradient(
+            to top,
+            var(--paper) 52%,
+            rgba(230, 227, 221, 0)
+          );
+        }
+        .is-landscape .photo-visual {
+          padding-bottom: 90px;
+        }
+      }
+
+      /* ------------------------------------------------------------
+         空状态与页脚
+      ------------------------------------------------------------ */
+      .empty-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .empty-kicker {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 800;
+        font-size: clamp(2.2rem, 8vw, 4rem);
+        letter-spacing: 0.02em;
+      }
+      .empty-note {
+        margin-top: 14px;
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        color: var(--muted);
+      }
+
+      .footer-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--film);
+        color: var(--paper);
+      }
+      .footer-inner {
+        text-align: center;
+        padding: 0 24px;
+      }
+      .footer-end {
+        font-family: var(--display);
+        font-stretch: 62%;
+        font-weight: 800;
+        font-size: clamp(2.4rem, 10vw, 5rem);
+        line-height: 1;
+        letter-spacing: 0.02em;
+      }
+      .footer-note {
+        margin-top: 16px;
+        font-family: var(--mono);
+        font-size: 10px;
+        letter-spacing: 0.3em;
+        color: #a89c86;
+      }
+      .footer-copyright {
+        margin-top: 30px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        color: #8a8070;
+      }
+      .footer-links {
+        margin-top: 22px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(230, 227, 221, 0.16);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .beian-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        color: #8a8070;
+        text-decoration: none;
+        transition: color 0.25s ease;
+      }
+      .beian-link:hover {
+        color: #fff;
+      }
+      .police-icon {
+        width: 14px;
+        height: 14px;
+        opacity: 0.7;
+      }
+      .footer-sep {
+        color: #5c554a;
+        font-size: 10px;
+      }
+
+      /* ------------------------------------------------------------
+         无障碍：减少动态效果
+      ------------------------------------------------------------ */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+        .snap-container {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </body>
 </html>
